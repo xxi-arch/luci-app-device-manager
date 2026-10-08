@@ -98,49 +98,64 @@ test('clicking the IP column header sorts devices in the table', async () => {
 
 	const table = viewNode.querySelector('#device_manager_table');
 	const thList = table.querySelectorAll('th');
+	assert.equal(thList.length, 8);
+	assert.ok(thList[0].classes.has('dm-index-column'));
 	const ipTh = thList.find(th => th.getAttribute('data-sort') === 'ip');
 	assert.ok(ipTh);
 	assert.equal(ipTh.classes.has('dm-sortable'), true);
+	assert.equal(ipTh.querySelector('button').attrs.type, 'button');
 
 	// First click: Sort by IP ascending (192.168.1.5 -> 192.168.1.20 -> 192.168.1.100)
-	await ipTh.click();
+	await ipTh.querySelector('button').click();
 	assert.equal(page.sortKey, 'ip');
 	assert.equal(page.sortDir, 'asc');
 	assert.equal(ipTh.classes.has('sorted-asc'), true);
-	assert.equal(ipTh.querySelector('.dm-sort-icon').textContent, ' ▲');
+	assert.equal(ipTh.getAttribute('aria-sort'), 'ascending');
 
 	let tbody = viewNode.querySelector('#device_manager_tbody');
 	let rows = tbody.querySelectorAll('tr');
 	assert.equal(rows.length, 3);
-	// 3rd td in each row is IP address
-	assert.ok(rows[0].querySelectorAll('td')[2].textContent.includes('192.168.1.5'));
-	assert.ok(rows[1].querySelectorAll('td')[2].textContent.includes('192.168.1.20'));
-	assert.ok(rows[2].querySelectorAll('td')[2].textContent.includes('192.168.1.100'));
+	assert.deepEqual(rows.map(row => row.querySelector('.dm-index-column').textContent), ['1', '2', '3']);
+	// 4th td in each row is IP address
+	assert.ok(rows[0].querySelectorAll('td')[3].textContent.includes('192.168.1.5'));
+	assert.ok(rows[1].querySelectorAll('td')[3].textContent.includes('192.168.1.20'));
+	assert.ok(rows[2].querySelectorAll('td')[3].textContent.includes('192.168.1.100'));
 
 	// Second click: Sort by IP descending (192.168.1.100 -> 192.168.1.20 -> 192.168.1.5)
-	await ipTh.click();
+	await ipTh.querySelector('button').click();
 	assert.equal(page.sortKey, 'ip');
 	assert.equal(page.sortDir, 'desc');
 	assert.equal(ipTh.classes.has('sorted-desc'), true);
-	assert.equal(ipTh.querySelector('.dm-sort-icon').textContent, ' ▼');
+	assert.equal(ipTh.getAttribute('aria-sort'), 'descending');
 
 	tbody = viewNode.querySelector('#device_manager_tbody');
 	rows = tbody.querySelectorAll('tr');
-	assert.ok(rows[0].querySelectorAll('td')[2].textContent.includes('192.168.1.100'));
-	assert.ok(rows[1].querySelectorAll('td')[2].textContent.includes('192.168.1.20'));
-	assert.ok(rows[2].querySelectorAll('td')[2].textContent.includes('192.168.1.5'));
+	assert.ok(rows[0].querySelectorAll('td')[3].textContent.includes('192.168.1.100'));
+	assert.ok(rows[1].querySelectorAll('td')[3].textContent.includes('192.168.1.20'));
+	assert.ok(rows[2].querySelectorAll('td')[3].textContent.includes('192.168.1.5'));
+	assert.deepEqual(rows.map(row => row.querySelector('.dm-index-column').textContent), ['1', '2', '3']);
 
 	// Click Name header: switch sorting to Name
 	const nameTh = thList.find(th => th.getAttribute('data-sort') === 'name');
 	assert.ok(nameTh);
-	await nameTh.click();
+	await nameTh.querySelector('button').click();
 	assert.equal(page.sortKey, 'name');
 	assert.equal(page.sortDir, 'asc');
 	assert.equal(ipTh.classes.has('sorted-asc'), false);
 	assert.equal(ipTh.classes.has('sorted-desc'), false);
-	assert.equal(ipTh.querySelector('.dm-sort-icon').textContent, ' ↕');
+	assert.equal(ipTh.getAttribute('aria-sort'), 'none');
 	assert.equal(nameTh.classes.has('sorted-asc'), true);
-	assert.equal(nameTh.querySelector('.dm-sort-icon').textContent, ' ▲');
+	assert.equal(nameTh.getAttribute('aria-sort'), 'ascending');
+
+	page.filterText = 'host2';
+	page.updateView();
+	rows = tbody.querySelectorAll('tr');
+	assert.equal(rows.length, 1);
+	assert.equal(rows[0].querySelector('.dm-index-column').textContent, '1');
+	assert.ok(rows[0].querySelectorAll('td')[3].textContent.includes('192.168.1.5'));
+	page.filterText = 'no matching device';
+	page.updateView();
+	assert.equal(tbody.querySelector('td').getAttribute('colspan'), thList.length);
 });
 
 test('status indicator renders as a small dot without text, and default tab is Online followed by All', async () => {
@@ -209,21 +224,21 @@ test('table row display omits no-hostname subtitle, prefix from hostname subtitl
 	// dev_1 has customName 'My-Server' and hostname 'NAS'
 	const row1 = rows[0];
 	const row1Tds = row1.querySelectorAll('td');
-	const titleRow1 = row1Tds[1].querySelector('.dm-device-title-row');
+	const titleRow1 = row1Tds[2].querySelector('.dm-device-title-row');
 	assert.ok(titleRow1.textContent.includes('My-Server'));
-	const subtitle1 = row1Tds[1].querySelector('.dm-device-subtitle');
+	const subtitle1 = row1Tds[2].querySelector('.dm-device-subtitle');
 	assert.ok(subtitle1);
 	assert.equal(subtitle1.textContent, 'NAS'); // Only NAS, no "Hostname: " or "主机名: " prefix
-	assert.equal(row1Tds[4].textContent, '');
 	assert.equal(row1Tds[5].textContent, '');
+	assert.equal(row1Tds[6].textContent, '');
 
 	// dev_2 has no customName and no hostname
 	const row2 = rows[1];
 	const row2Tds = row2.querySelectorAll('td');
-	const subtitle2 = row2Tds[1].querySelector('.dm-device-subtitle');
+	const subtitle2 = row2Tds[2].querySelector('.dm-device-subtitle');
 	assert.equal(subtitle2, null); // No "No hostname detected" or "无检测主机名"
-	assert.equal(row2Tds[4].textContent, '');
 	assert.equal(row2Tds[5].textContent, '');
+	assert.equal(row2Tds[6].textContent, '');
 });
 
 test('mask/show info button toggles MAC and IPv6 masking with asterisks and remembers preference', async () => {
@@ -256,9 +271,9 @@ test('mask/show info button toggles MAC and IPv6 masking with asterisks and reme
 	// By default maskInfo is false: MAC and IPv6 are unmasked
 	let row = viewNode.querySelector('#device_manager_tbody').querySelectorAll('tr')[0];
 	let rowTds = row.querySelectorAll('td');
-	assert.ok(rowTds[2].textContent.includes('192.168.1.10')); // IPv4
-	assert.ok(rowTds[2].textContent.includes('fe80::1234:5678:9abc:def0')); // IPv6 unmasked
-	assert.ok(rowTds[3].textContent.includes('00:11:22:33:44:01')); // MAC unmasked
+	assert.ok(rowTds[3].textContent.includes('192.168.1.10')); // IPv4
+	assert.ok(rowTds[3].textContent.includes('fe80::1234:5678:9abc:def0')); // IPv6 unmasked
+	assert.ok(rowTds[4].textContent.includes('00:11:22:33:44:01')); // MAC unmasked
 
 	// Click mask toggle button
 	const maskBtn = viewNode.querySelector('#dm-btn-mask');
@@ -272,13 +287,13 @@ test('mask/show info button toggles MAC and IPv6 masking with asterisks and reme
 	row = viewNode.querySelector('#device_manager_tbody').querySelectorAll('tr')[0];
 	rowTds = row.querySelectorAll('td');
 	// IPv4 remains completely unchanged
-	assert.ok(rowTds[2].textContent.includes('192.168.1.10'));
+	assert.ok(rowTds[3].textContent.includes('192.168.1.10'));
 	// IPv6 is masked with asterisks
-	assert.ok(rowTds[2].textContent.includes('****::****:****:****:****'));
-	assert.ok(!rowTds[2].textContent.includes('fe80'));
+	assert.ok(rowTds[3].textContent.includes('****::****:****:****:****'));
+	assert.ok(!rowTds[3].textContent.includes('fe80'));
 	// MAC is masked with asterisks
-	assert.ok(rowTds[3].textContent.includes('**:**:**:**:**:**'));
-	assert.ok(!rowTds[3].textContent.includes('00:11:22'));
+	assert.ok(rowTds[4].textContent.includes('**:**:**:**:**:**'));
+	assert.ok(!rowTds[4].textContent.includes('00:11:22'));
 
 	// Test persistence on page reload
 	const pageReload = loadModule('view.device-manager.devices', env);
@@ -288,7 +303,7 @@ test('mask/show info button toggles MAC and IPv6 masking with asterisks and reme
 
 	row = reloadedView.querySelector('#device_manager_tbody').querySelectorAll('tr')[0];
 	rowTds = row.querySelectorAll('td');
-	assert.ok(rowTds[2].textContent.includes('192.168.1.10'));
-	assert.ok(rowTds[2].textContent.includes('****::****:****:****:****'));
-	assert.ok(rowTds[3].textContent.includes('**:**:**:**:**:**'));
+	assert.ok(rowTds[3].textContent.includes('192.168.1.10'));
+	assert.ok(rowTds[3].textContent.includes('****::****:****:****:****'));
+	assert.ok(rowTds[4].textContent.includes('**:**:**:**:**:**'));
 });

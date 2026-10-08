@@ -33,6 +33,10 @@ test('explicit LuCI Chinese or English settings override the browser language', 
     assert.equal(english.i18n.t('Save'), 'Save');
     const chinese = context('zh_cn', ['en-US']); await chinese.i18n.load();
     assert.equal(chinese.i18n.t('Save'), '保存');
+    const englishHeader = (await render(english)).querySelectorAll('th').find(th => th.getAttribute('data-sort') === 'name');
+    const chineseHeader = (await render(chinese)).querySelectorAll('th').find(th => th.getAttribute('data-sort') === 'name');
+    assert.equal(englishHeader.querySelector('button').attrs.title, 'Click to sort by Device name');
+    assert.equal(chineseHeader.querySelector('button').attrs.title, '点击按设备名称排序');
 });
 test('Chinese page, status details, placeholders and dialogs work without a separate language package', async () => {
     const mac = 'AA:BB:CC:11:22:33';

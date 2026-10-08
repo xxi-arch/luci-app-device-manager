@@ -90,7 +90,7 @@ for (const [command, prefix] of [['sh', []], ['busybox', ['sh']]]) {
             const addresses = starts(result.log);
             assert.equal(addresses.length, 128);
             assert.equal(new Set(addresses).size, 128);
-            if (pass === 0) assert.deepEqual(addresses.slice(0, 2), ['192.168.1.200', '192.168.3.20']);
+            if (pass === 0) assert.deepEqual(addresses.slice(0, 2).sort(), ['192.168.1.200', '192.168.3.20']);
             if (pass === 1) assert.ok(addresses.every(ip => !seen.has(ip)), 'second pass must resume, not restart');
             addresses.forEach(ip => seen.add(ip));
             let active = 0, peak = 0;

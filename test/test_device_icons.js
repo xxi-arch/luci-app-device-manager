@@ -11,7 +11,10 @@ const EXPECTED_ICONS = [
 	'camera.svg', 'speaker.svg', 'game.svg', 'router.svg',
 	'switch.svg', 'ap.svg', 'server.svg', 'plug.svg',
 	'light.svg', 'sensor.svg', 'home.svg', 'watch.svg',
-	'car.svg', 'vr.svg', 'network.svg', 'unknown.svg'
+	'car.svg', 'vr.svg', 'network.svg',
+	'airconditioner.svg', 'washer.svg', 'fridge.svg',
+	'waterpurifier.svg', 'airpurifier.svg',
+	'unknown.svg'
 ];
 
 function pageContext(initial = []) {
@@ -25,7 +28,7 @@ function pageContext(initial = []) {
 	return Object.assign({ env, page, model, service }, mocks);
 }
 
-test('all 24 MDI device icons are present in device-icons/ and web resource directories', () => {
+test('all 29 MDI device icons are present in device-icons/ and web resource directories', () => {
 	const dir1 = path.join(root, 'device-icons');
 	const dir2 = path.join(root, 'htdocs/luci-static/resources/device-manager/device-icons');
 
@@ -105,9 +108,19 @@ test('detectDeviceType refines classification using hostname or custom name clue
 	assert.equal(model.detectDeviceType(genericMac, 'PlayStation-5', '', ''), 'game');
 	assert.equal(model.detectDeviceType(genericMac, 'USW-Lite-16-PoE', '', ''), 'switch');
 	assert.equal(model.detectDeviceType(genericMac, 'UniFi-U6-Pro', '', ''), 'ap');
+	assert.equal(model.detectDeviceType(genericMac, 'Gree-AirConditioner', '', ''), 'airconditioner');
+	assert.equal(model.detectDeviceType(genericMac, 'LivingRoom-空调', '', ''), 'airconditioner');
+	assert.equal(model.detectDeviceType(genericMac, 'LG-Washer', '', ''), 'washer');
+	assert.equal(model.detectDeviceType(genericMac, 'Haier-洗衣机', '', ''), 'washer');
+	assert.equal(model.detectDeviceType(genericMac, 'Samsung-Fridge', '', ''), 'fridge');
+	assert.equal(model.detectDeviceType(genericMac, '厨房冰箱', '', ''), 'fridge');
+	assert.equal(model.detectDeviceType(genericMac, 'Xiaomi-WaterPurifier', '', ''), 'waterpurifier');
+	assert.equal(model.detectDeviceType(genericMac, '小米净水器', '', ''), 'waterpurifier');
+	assert.equal(model.detectDeviceType(genericMac, 'Mi-AirPurifier-Pro', '', ''), 'airpurifier');
+	assert.equal(model.detectDeviceType(genericMac, '卧室空气净化器', '', ''), 'airpurifier');
 });
 
-test('device table renders the device icon in the first column', async () => {
+test('device table renders the device icon after the row number', async () => {
 	const ctx = pageContext();
 	const nasMac = '00:11:32:11:22:33';
 	ctx.replies['luci.device-manager.get_online_status'] = {
@@ -124,18 +137,18 @@ test('device table renders the device icon in the first column', async () => {
 	// Check table thead has type column
 	const table = viewNode.querySelector('#device_manager_table');
 	const thList = table.querySelectorAll('th');
-	assert.equal(thList[0].classes.has('dm-type-th'), true);
+	assert.equal(thList[1].classes.has('dm-type-th'), true);
 
-	// Check tbody row has the icon in the first column
+	// Check tbody row has the icon after the row number
 	const tbody = viewNode.querySelector('#device_manager_tbody');
 	const rows = tbody.querySelectorAll('tr');
 	assert.equal(rows.length, 1);
 
 	const row = rows[0];
 	const tdList = row.querySelectorAll('td');
-	assert.equal(tdList[0].classes.has('dm-type-cell'), true);
+	assert.equal(tdList[1].classes.has('dm-type-cell'), true);
 
-	const iconImg = tdList[0].querySelector('img');
+	const iconImg = tdList[1].querySelector('img');
 	assert.ok(iconImg);
 	assert.equal(iconImg.classes.has('dm-device-icon'), true);
 	assert.match(iconImg.attrs.src, /device-icons\/nas\.svg/);
@@ -155,7 +168,7 @@ test('custom device type override can be saved and displayed', async () => {
 	const viewNode = ctx.page.render(data);
 
 	const row = viewNode.querySelector('#device_manager_tbody').querySelectorAll('tr')[0];
-	const iconImg = row.querySelectorAll('td')[0].querySelector('img');
+	const iconImg = row.querySelectorAll('td')[1].querySelector('img');
 	assert.match(iconImg.attrs.src, /device-icons\/server\.svg/);
 
 	// Test saving a new type via service

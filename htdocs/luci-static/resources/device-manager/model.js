@@ -38,6 +38,11 @@ const DEVICE_TYPES = {
 	car:      { id: 'car',      icon: 'car.svg',      zh: '智能汽车', en: 'Vehicle' },
 	vr:       { id: 'vr',       icon: 'vr.svg',       zh: 'VR设备',   en: 'VR headset' },
 	network:  { id: 'network',  icon: 'network.svg',  zh: '网络设备', en: 'Network device' },
+	airconditioner: { id: 'airconditioner', icon: 'airconditioner.svg', zh: '空调', en: 'Air conditioner' },
+	washer:         { id: 'washer',         icon: 'washer.svg',         zh: '洗衣机', en: 'Washing machine' },
+	fridge:         { id: 'fridge',         icon: 'fridge.svg',         zh: '冰箱', en: 'Refrigerator' },
+	waterpurifier:  { id: 'waterpurifier',  icon: 'waterpurifier.svg',  zh: '净水器', en: 'Water purifier' },
+	airpurifier:    { id: 'airpurifier',    icon: 'airpurifier.svg',    zh: '空气净化器', en: 'Air purifier' },
 	unknown:  { id: 'unknown',  icon: 'unknown.svg',  zh: '未知设备', en: 'Unknown' }
 };
 
@@ -242,6 +247,11 @@ function detectDeviceType(mac, hostname, customName, group) {
 	if (/(macbook|laptop|thinkpad|notebook|zenbook|yoga|ideapad|matebook|surface-laptop|latitude|inspiron|precision|xps|book)/i.test(text)) return 'laptop';
 	if (/(server|pve|proxmox|esxi|vmware|docker|kubernetes|k8s)/i.test(text)) return 'server';
 	if (/(desktop|imac|macmini|macstudio|macpro|pc|tower|workstation|optiplex|windows)/i.test(text)) return 'computer';
+	if (/(airconditioner|air-conditioner|aircon|air_cond|air-conditioning|hvac|ac-unit|ac_unit|daikin|gree|midea.*ac|aux.*ac|chigo|空调)/i.test(text)) return 'airconditioner';
+	if (/(washer|washing-machine|washingmachine|dryer|laundry|洗衣机|烘干机)/i.test(text)) return 'washer';
+	if (/(fridge|refrigerator|freezer|冰箱|冷柜)/i.test(text)) return 'fridge';
+	if (/(waterpurifier|water-purifier|waterpuri|water.*purif|purif.*water|净水器|直饮机|净水机)/i.test(text)) return 'waterpurifier';
+	if (/(airpurifier|air-purifier|airpuri|purifier|空净|空气净化)/i.test(text)) return 'airpurifier';
 	if (/(iphone|galaxy|redmi|xiaomi|huawei|honor|pixel|oneplus|oppo|vivo|xperia|realme|meizu|phone|mobile)/i.test(text)) return 'phone';
 	if (/(smartplug|smart-plug|socket|outlet|plug)/i.test(text)) return 'plug';
 	if (/(smartlight|smart-light|light|bulb|lamp|yeelight|hue|strip)/i.test(text)) return 'light';

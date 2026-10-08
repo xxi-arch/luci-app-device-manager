@@ -48,59 +48,37 @@ return view.extend({
 		this.activeGroup = (savedView.group === 'all' || savedView.group === 'ungrouped' || this.getGroupById(savedView.group)) ? savedView.group : 'all';
 		this.maskInfo = Boolean(savedView.maskInfo);
 
+		const isZh = (i18n.language || i18n.detectLanguage()) === 'zh';
+		const sortHeader = (key, label, width, centered) => E('th', {
+			'class': 'th dm-sortable' + (centered ? ' dm-type-th' : ''),
+			'scope': 'col',
+			'data-sort': key,
+			'style': 'width:' + width + ';'
+		}, [ E('button', {
+			'type': 'button',
+			'class': 'dm-header-content dm-sort-button',
+			'title': isZh ? '点击按' + label + '排序' : 'Click to sort by ' + label,
+			'click': function() { self.handleSort(key); }
+		}, [
+			E('span', { 'class': 'dm-sort-label' }, [ label ]),
+			E('span', { 'class': 'dm-sort-icon', 'aria-hidden': 'true' })
+		]) ]);
+
 		const theadNode = E('thead', {}, [ E('tr', { 'class': 'tr table-titles' }, [
-			E('th', {
-				'class': 'th dm-type-th dm-sortable',
-				'data-sort': 'type',
-				'title': (i18n.detectLanguage() === 'zh' ? '点击按设备类型排序' : 'Click to sort by device type'),
-				'style': 'width:56px; text-align:center;',
-				'click': function() { self.handleSort('type'); }
-			}, [
-				(i18n.detectLanguage() === 'zh' ? '类型' : 'Type'),
-				E('span', { 'class': 'dm-sort-icon' }, [ self.getSortIndicator('type') ])
+			E('th', { 'class': 'th dm-index-column', 'scope': 'col' }, [
+				E('span', { 'class': 'dm-header-content' }, [ isZh ? '序号' : '#' ])
 			]),
-			E('th', {
-				'class': 'th dm-sortable',
-				'data-sort': 'name',
-				'title': (i18n.detectLanguage() === 'zh' ? '点击按设备名称排序' : 'Click to sort by device name'),
-				'style': 'width:24%;',
-				'click': function() { self.handleSort('name'); }
-			}, [
-				i18n.t('Device name'),
-				E('span', { 'class': 'dm-sort-icon' }, [ self.getSortIndicator('name') ])
+			sortHeader('type', isZh ? '类型' : 'Type', '56px', true),
+			sortHeader('name', i18n.t('Device name'), '24%'),
+			sortHeader('ip', i18n.t('IP address'), '18%'),
+			sortHeader('mac', i18n.t('MAC address'), '18%'),
+			sortHeader('group', i18n.t('Group'), '14%'),
+			E('th', { 'class': 'th', 'scope': 'col', 'style': 'width:14%;' }, [
+				E('span', { 'class': 'dm-header-content' }, [ i18n.t('Remarks') ])
 			]),
-			E('th', {
-				'class': 'th dm-sortable',
-				'data-sort': 'ip',
-				'title': (i18n.detectLanguage() === 'zh' ? '点击按 IP 地址排序' : 'Click to sort by IP address'),
-				'style': 'width:18%;',
-				'click': function() { self.handleSort('ip'); }
-			}, [
-				i18n.t('IP address'),
-				E('span', { 'class': 'dm-sort-icon' }, [ self.getSortIndicator('ip') ])
-			]),
-			E('th', {
-				'class': 'th dm-sortable',
-				'data-sort': 'mac',
-				'title': (i18n.detectLanguage() === 'zh' ? '点击按 MAC 地址排序' : 'Click to sort by MAC address'),
-				'style': 'width:18%;',
-				'click': function() { self.handleSort('mac'); }
-			}, [
-				i18n.t('MAC address'),
-				E('span', { 'class': 'dm-sort-icon' }, [ self.getSortIndicator('mac') ])
-			]),
-			E('th', {
-				'class': 'th dm-sortable',
-				'data-sort': 'group',
-				'title': (i18n.detectLanguage() === 'zh' ? '点击按分组排序' : 'Click to sort by group'),
-				'style': 'width:14%;',
-				'click': function() { self.handleSort('group'); }
-			}, [
-				i18n.t('Group'),
-				E('span', { 'class': 'dm-sort-icon' }, [ self.getSortIndicator('group') ])
-			]),
-			E('th', { 'class': 'th', 'style': 'width:14%;' }, [ i18n.t('Remarks') ]),
-			E('th', { 'class': 'th cbi-section-actions', 'style': 'width:12%; text-align:center;' }, [ i18n.t('Actions') ])
+			E('th', { 'class': 'th dm-actions-column', 'scope': 'col' }, [
+				E('span', { 'class': 'dm-header-content' }, [ i18n.t('Actions') ])
+			])
 		]) ]);
 
 		const viewNode = E('div', { 'class': 'cbi-map' }, [
@@ -205,9 +183,8 @@ return view.extend({
 	renderTabs: function() { return table.renderTabs.call(this); },
 	renderGroupSelect: function() { return table.renderGroupSelect.call(this); },
 	renderTable: function() { return table.renderTable.call(this); },
-	renderDeviceRow: function(device) { return table.renderDeviceRow.call(this, device); },
+	renderDeviceRow: function(device, rowNumber) { return table.renderDeviceRow.call(this, device, rowNumber); },
 	handleSort: function(key) { return table.handleSort.call(this, key); },
-	getSortIndicator: function(key) { return table.getSortIndicator.call(this, key); },
 	updateSortHeaders: function() { return table.updateSortHeaders.call(this); },
 	showEditModal: function(device) { return deviceDialog.showEditModal.call(this, device); },
 	confirmDelete: function(device) { return deviceDialog.confirmDelete.call(this, device); },

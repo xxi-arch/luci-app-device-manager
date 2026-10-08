@@ -96,11 +96,6 @@ return baseclass.extend({
 		this.renderTable();
 	},
 
-	getSortIndicator: function(key) {
-		if (this.sortKey !== key) return ' ↕';
-		return this.sortDir === 'asc' ? ' ▲' : ' ▼';
-	},
-
 	updateSortHeaders: function() {
 		if (!this.tableHeadNode) return;
 		const ths = this.tableHeadNode.querySelectorAll('th');
@@ -124,10 +119,6 @@ return baseclass.extend({
 				} else if (th.attrs) {
 					th.attrs['aria-sort'] = 'none';
 				}
-			}
-			const iconSpan = th.querySelector('.dm-sort-icon');
-			if (iconSpan) {
-				iconSpan.textContent = this.getSortIndicator(col);
 			}
 		}
 	},
@@ -154,7 +145,7 @@ return baseclass.extend({
 				emptyMsg = i18n.t('No devices in this group');
 
 			this.tableBodyNode.appendChild(E('tr', { 'class': 'tr' }, [
-				E('td', { 'class': 'td', 'colspan': 7, 'style': 'text-align:center; padding:36px 16px; color:#888;' }, [ emptyMsg ])
+				E('td', { 'class': 'td', 'colspan': 8, 'style': 'text-align:center; padding:36px 16px; color:#888;' }, [ emptyMsg ])
 			]));
 			return;
 		}
@@ -162,11 +153,11 @@ return baseclass.extend({
 		const sorted = model.sortDevices(filtered, this.sortKey, this.sortDir, id => this.getGroupName(id));
 
 		for (let i = 0; i < sorted.length; i++) {
-			this.tableBodyNode.appendChild(this.renderDeviceRow(sorted[i]));
+			this.tableBodyNode.appendChild(this.renderDeviceRow(sorted[i], i + 1));
 		}
 	},
 
-	renderDeviceRow: function(dev) {
+	renderDeviceRow: function(dev, rowNumber) {
 		const self = this;
 
 		// 0. Device type icon column
@@ -248,28 +239,40 @@ return baseclass.extend({
 			: null;
 
 		// 6. Action column
+		const actionLink = (label, className, action) => E('a', {
+			'href': '#',
+			'role': 'button',
+			'class': 'dm-action-link ' + className,
+			'click': function(ev) {
+				ev.preventDefault();
+				action();
+			},
+			'keydown': function(ev) {
+				if (ev.key === ' ') {
+					ev.preventDefault();
+					action();
+				}
+			}
+		}, [ label ]);
 		const actions = self.readonly ? [ E('em', {}, [ i18n.t('Read-only') ]) ] : [
-			E('button', { 'type': 'button',
-				'class': 'btn cbi-button cbi-button-neutral',
-				'click': function() { self.showEditModal(dev); }
-			}, [ i18n.t('Edit') ])
+			actionLink(i18n.t('Edit'), 'dm-action-edit', () => self.showEditModal(dev))
 		];
 
 		if (dev.isSaved && !self.readonly) {
-			actions.push(E('button', { 'type': 'button',
-				'class': 'btn cbi-button cbi-button-remove',
-				'click': function() { self.confirmDelete(dev); }
-			}, [ i18n.t('Delete') ]));
+			actions.push(actionLink(i18n.t('Delete'), 'dm-action-delete', () => self.confirmDelete(dev)));
 		}
 
 		return E('tr', { 'class': 'tr' }, [
+			E('td', { 'class': 'td dm-index-column' }, [ rowNumber == null ? '' : String(rowNumber) ]),
 			E('td', { 'class': 'td dm-type-cell', 'style': 'text-align:center; vertical-align:middle;' }, [ iconNode ]),
 			E('td', { 'class': 'td' }, nameChildren),
 			E('td', { 'class': 'td' }, ipChildren),
 			E('td', { 'class': 'td' }, macNode),
 			E('td', { 'class': 'td' }, groupNode),
 			E('td', { 'class': 'td' }, remarkNode),
-			E('td', { 'class': 'td cbi-section-actions dm-actions', 'style': 'text-align:center;' }, actions)
+			E('td', { 'class': 'td dm-actions dm-actions-column' }, [
+				E('div', { 'class': 'dm-action-links' }, actions)
+			])
 		]);
 	}
 });
