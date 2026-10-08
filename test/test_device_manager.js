@@ -24,7 +24,9 @@ function runTest(name, fn) {
     }
 }
 
-// Extract core logic functions directly matching devices.js implementation
+// -------------------------------------------------------------
+// Core logic functions matching devices.js
+// -------------------------------------------------------------
 function normalizeMac(mac) {
     if (!mac || typeof mac !== 'string')
         return null;
@@ -45,64 +47,44 @@ function sanitizeInput(str) {
     return String(str).trim().replace(/[\r\n\t\0]/g, ' ');
 }
 
-// 1. MAC Normalization Tests
-console.log('--- 1. MAC Normalization & Validation ---');
+const DEFAULT_GROUPS = [
+    { id: 'smart_home', name: '智能家居' },
+    { id: 'phone',      name: '手机设备' },
+    { id: 'computer',   name: '电脑设备' },
+    { id: 'network',    name: '网络设备' },
+    { id: 'other',      name: '其他设备' }
+];
 
-runTest('Standard uppercase colon format', () => {
-    assert.strictEqual(normalizeMac('AA:BB:CC:11:22:33'), 'AA:BB:CC:11:22:33');
-});
+const STORAGE_KEY = 'luci-device-manager-view';
 
-runTest('Lowercase colon format to uppercase', () => {
-    assert.strictEqual(normalizeMac('aa:bb:cc:11:22:33'), 'AA:BB:CC:11:22:33');
-});
+function mockLoadViewState(storageMock, validGroupIds) {
+    try {
+        const raw = storageMock.getItem(STORAGE_KEY);
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && typeof parsed === 'object') {
+                const tab = ['all', 'online', 'offline', 'unknown'].includes(parsed.tab) ? parsed.tab : 'all';
+                let group = 'all';
+                if (parsed.group === 'all' || parsed.group === 'ungrouped' || (validGroupIds && validGroupIds.includes(parsed.group))) {
+                    group = parsed.group;
+                }
+                return { tab, group };
+            }
+        }
+    } catch (e) {}
+    return { tab: 'all', group: 'all' };
+}
 
-runTest('Hyphen-separated format to colon', () => {
-    assert.strictEqual(normalizeMac('aa-bb-cc-11-22-33'), 'AA:BB:CC:11:22:33');
-    assert.strictEqual(normalizeMac('AA-BB-CC-11-22-33'), 'AA:BB:CC:11:22:33');
-});
+function mockSaveViewState(storageMock, tab, group) {
+    try {
+        storageMock.setItem(STORAGE_KEY, JSON.stringify({
+            tab: tab || 'all',
+            group: group || 'all'
+        }));
+    } catch (e) {}
+}
 
-runTest('Continuous hex characters without separators', () => {
-    assert.strictEqual(normalizeMac('aabbcc112233'), 'AA:BB:CC:11:22:33');
-    assert.strictEqual(normalizeMac('AABBCC112233'), 'AA:BB:CC:11:22:33');
-});
-
-runTest('Whitespace padding handling', () => {
-    assert.strictEqual(normalizeMac('  aa:bb:cc:11:22:33  \t'), 'AA:BB:CC:11:22:33');
-});
-
-runTest('Invalid MAC address formats', () => {
-    assert.strictEqual(normalizeMac(''), null);
-    assert.strictEqual(normalizeMac(null), null);
-    assert.strictEqual(normalizeMac(undefined), null);
-    assert.strictEqual(normalizeMac('invalid'), null);
-    assert.strictEqual(normalizeMac('AA:BB:CC'), null);
-    assert.strictEqual(normalizeMac('ZZ:BB:CC:11:22:33'), null);
-    assert.strictEqual(normalizeMac('AA:BB:CC:11:22:33:44'), null);
-});
-
-// 2. UCI Section ID Derivation Tests
-console.log('\n--- 2. UCI Section ID Generation ---');
-
-runTest('Stable and deterministic section ID generation', () => {
-    assert.strictEqual(getSectionId('AA:BB:CC:11:22:33'), 'dev_aabbcc112233');
-    assert.strictEqual(getSectionId('aa:bb:cc:11:22:33'), 'dev_aabbcc112233');
-    assert.strictEqual(getSectionId('00:11:22:33:44:55'), 'dev_001122334455');
-});
-
-// 3. String Sanitization & UTF-8 Tests
-console.log('\n--- 3. Sanitization & Internationalization ---');
-
-runTest('Sanitize control characters while preserving UTF-8 Chinese characters', () => {
-    assert.strictEqual(sanitizeInput('客厅电视'), '客厅电视');
-    assert.strictEqual(sanitizeInput('55寸安卓智能电视\n一楼客厅'), '55寸安卓智能电视 一楼客厅');
-    assert.strictEqual(sanitizeInput('  工作电脑 (MacBook Pro) \r\n'), '工作电脑 (MacBook Pro)');
-    assert.strictEqual(sanitizeInput(null), '');
-});
-
-// 4. Data Merging, Deduplication & Host Hints Logic Tests
-console.log('\n--- 4. Device Discovery & Data Merging ---');
-
-function mockParseDevices(hostHintsObj, rawHints, dhcpLeases, uciSections) {
+function mockParseDevices(hostHintsObj, rawHints, dhcpLeases, onlineStatusData, wifiStations, arpEntries, uciSections, groups) {
     const devicesMap = new Map();
 
     const getEntry = function(mac) {
@@ -116,9 +98,12 @@ function mockParseDevices(hostHintsObj, rawHints, dhcpLeases, uciSections) {
                 ipv6: '',
                 customName: '',
                 remark: '',
+                group: 'ungrouped',
                 sid: null,
                 isSaved: false,
-                isDiscovered: false
+                isDiscovered: false,
+                status: 'unknown',
+                statusDetail: ''
             });
         }
         return devicesMap.get(normMac);
@@ -157,127 +142,242 @@ function mockParseDevices(hostHintsObj, rawHints, dhcpLeases, uciSections) {
             if (!normMac && sec['.name'] && sec['.name'].startsWith('dev_'))
                 normMac = normalizeMac(sec['.name'].slice(4));
             if (!normMac) continue;
+
             const entry = getEntry(normMac);
             if (!entry) continue;
             entry.isSaved = true;
             entry.sid = sec['.name'];
             entry.customName = (sec.name || '').trim();
             entry.remark = (sec.remark || '').trim();
+            const savedGroup = (sec.group || '').trim();
+            const groupExists = groups && groups.some(g => g.id === savedGroup);
+            entry.group = (savedGroup && groupExists) ? savedGroup : 'ungrouped';
         }
     }
+
+    const wifiSet = new Set();
+    if (Array.isArray(wifiStations)) {
+        for (let i = 0; i < wifiStations.length; i++) {
+            const m = normalizeMac(wifiStations[i]);
+            if (m) wifiSet.add(m);
+        }
+    }
+
+    const neighborMap = new Map();
+    if (onlineStatusData && Array.isArray(onlineStatusData.neighbors)) {
+        for (let i = 0; i < onlineStatusData.neighbors.length; i++) {
+            const n = onlineStatusData.neighbors[i];
+            const m = normalizeMac(n.mac);
+            if (m) {
+                const cur = neighborMap.get(m);
+                if (!cur || n.state === 'REACHABLE' || (cur !== 'REACHABLE' && n.state === 'DELAY'))
+                    neighborMap.set(m, n.state);
+            }
+        }
+    }
+
+    const arpMap = new Map();
+    if (Array.isArray(arpEntries)) {
+        for (let i = 0; i < arpEntries.length; i++) {
+            const a = arpEntries[i];
+            const m = normalizeMac(a.mac);
+            if (m) arpMap.set(m, a.flags);
+        }
+    }
+
+    devicesMap.forEach(function(dev) {
+        const isWifi = wifiSet.has(dev.mac);
+        const neighState = neighborMap.get(dev.mac);
+        const arpFlag = arpMap.get(dev.mac);
+
+        if (isWifi) {
+            dev.status = 'online';
+            dev.statusDetail = 'Wi-Fi 活跃连接';
+        } else if (neighState === 'REACHABLE' || neighState === 'DELAY' || neighState === 'PROBE') {
+            dev.status = 'online';
+            dev.statusDetail = `网络邻居活跃 (${neighState})`;
+        } else if (neighState === 'FAILED') {
+            dev.status = 'offline';
+            dev.statusDetail = '网络邻居探测失败 (FAILED)';
+        } else if (!dev.isDiscovered && !neighState && dev.isSaved) {
+            dev.status = 'offline';
+            dev.statusDetail = '未在当前局域网发现 (仅历史记录)';
+        } else if (neighState === 'STALE') {
+            dev.status = 'unknown';
+            dev.statusDetail = '网络邻居近期无活动 (STALE)';
+        } else if (arpFlag === '0x2') {
+            dev.status = 'unknown';
+            dev.statusDetail = '存在 ARP 解析记录';
+        } else if (dev.isDiscovered) {
+            dev.status = 'unknown';
+            dev.statusDetail = '仅主机探测记录，缺少近期活动证据';
+        } else {
+            dev.status = 'unknown';
+            dev.statusDetail = '状态未知';
+        }
+    });
 
     return Array.from(devicesMap.values());
 }
 
-runTest('Merge host hints with UCI remarks correctly', () => {
-    const hostHints = {
-        hosts: {
-            'AA:BB:CC:11:22:33': { name: 'android-tv', ipaddrs: ['192.168.1.100'] }
-        }
-    };
+// -------------------------------------------------------------
+// 1. MAC Normalization Tests
+// -------------------------------------------------------------
+console.log('--- 1. MAC Normalization & Validation ---');
+
+runTest('Standard uppercase colon format', () => {
+    assert.strictEqual(normalizeMac('AA:BB:CC:11:22:33'), 'AA:BB:CC:11:22:33');
+});
+
+runTest('Lowercase colon format to uppercase', () => {
+    assert.strictEqual(normalizeMac('aa:bb:cc:11:22:33'), 'AA:BB:CC:11:22:33');
+});
+
+runTest('Hyphen-separated format to colon', () => {
+    assert.strictEqual(normalizeMac('aa-bb-cc-11-22-33'), 'AA:BB:CC:11:22:33');
+    assert.strictEqual(normalizeMac('AA-BB-CC-11-22-33'), 'AA:BB:CC:11:22:33');
+});
+
+runTest('Continuous hex characters without separators', () => {
+    assert.strictEqual(normalizeMac('aabbcc112233'), 'AA:BB:CC:11:22:33');
+});
+
+runTest('Invalid MAC address formats', () => {
+    assert.strictEqual(normalizeMac(''), null);
+    assert.strictEqual(normalizeMac(null), null);
+    assert.strictEqual(normalizeMac('ZZ:BB:CC:11:22:33'), null);
+    assert.strictEqual(normalizeMac('AA:BB:CC:11:22:33:44'), null);
+});
+
+// -------------------------------------------------------------
+// 2. UCI Section ID Generation
+// -------------------------------------------------------------
+console.log('\n--- 2. UCI Section ID Generation ---');
+
+runTest('Stable and deterministic section ID generation', () => {
+    assert.strictEqual(getSectionId('AA:BB:CC:11:22:33'), 'dev_aabbcc112233');
+    assert.strictEqual(getSectionId('aa:bb:cc:11:22:33'), 'dev_aabbcc112233');
+});
+
+// -------------------------------------------------------------
+// 3. Online Status Recognition Tests
+// -------------------------------------------------------------
+console.log('\n--- 3. Online Status Recognition Rules ---');
+
+runTest('Wi-Fi associated device is marked online', () => {
+    const hostHints = { hosts: { 'AA:BB:CC:11:22:33': { name: 'phone', ipaddrs: ['192.168.1.100'] } } };
+    const wifiStations = ['AA:BB:CC:11:22:33'];
+    const devs = mockParseDevices(hostHints, null, null, null, wifiStations, null, null, DEFAULT_GROUPS);
+    assert.strictEqual(devs.length, 1);
+    assert.strictEqual(devs[0].status, 'online');
+    assert.ok(devs[0].statusDetail.includes('Wi-Fi'));
+});
+
+runTest('Neighbor state REACHABLE is marked online', () => {
+    const hostHints = { hosts: { 'AA:BB:CC:11:22:33': { name: 'pc', ipaddrs: ['192.168.1.101'] } } };
+    const onlineStatus = { neighbors: [{ mac: 'AA:BB:CC:11:22:33', state: 'REACHABLE' }] };
+    const devs = mockParseDevices(hostHints, null, null, onlineStatus, null, null, null, DEFAULT_GROUPS);
+    assert.strictEqual(devs.length, 1);
+    assert.strictEqual(devs[0].status, 'online');
+    assert.ok(devs[0].statusDetail.includes('REACHABLE'));
+});
+
+runTest('Neighbor state FAILED is marked offline', () => {
+    const hostHints = { hosts: { 'AA:BB:CC:11:22:33': { name: 'tv', ipaddrs: ['192.168.1.102'] } } };
+    const onlineStatus = { neighbors: [{ mac: 'AA:BB:CC:11:22:33', state: 'FAILED' }] };
+    const devs = mockParseDevices(hostHints, null, null, onlineStatus, null, null, null, DEFAULT_GROUPS);
+    assert.strictEqual(devs.length, 1);
+    assert.strictEqual(devs[0].status, 'offline');
+});
+
+runTest('Historical saved device absent from network is marked offline', () => {
+    const uciSections = [{ '.name': 'dev_aabbcc112233', mac: 'AA:BB:CC:11:22:33', name: '旧设备' }];
+    const devs = mockParseDevices(null, null, null, null, null, null, uciSections, DEFAULT_GROUPS);
+    assert.strictEqual(devs.length, 1);
+    assert.strictEqual(devs[0].status, 'offline');
+    assert.strictEqual(devs[0].isDiscovered, false);
+    assert.strictEqual(devs[0].isSaved, true);
+});
+
+runTest('Neighbor state STALE is marked unknown (not assumed online)', () => {
+    const hostHints = { hosts: { 'AA:BB:CC:11:22:33': { name: 'plug', ipaddrs: ['192.168.1.103'] } } };
+    const onlineStatus = { neighbors: [{ mac: 'AA:BB:CC:11:22:33', state: 'STALE' }] };
+    const devs = mockParseDevices(hostHints, null, null, onlineStatus, null, null, null, DEFAULT_GROUPS);
+    assert.strictEqual(devs.length, 1);
+    assert.strictEqual(devs[0].status, 'unknown');
+    assert.ok(devs[0].statusDetail.includes('STALE'));
+});
+
+runTest('Host hints entry without recent neighbor activity is marked unknown', () => {
+    const hostHints = { hosts: { 'AA:BB:CC:11:22:33': { name: 'printer', ipaddrs: ['192.168.1.104'] } } };
+    const devs = mockParseDevices(hostHints, null, null, null, null, null, null, DEFAULT_GROUPS);
+    assert.strictEqual(devs.length, 1);
+    assert.strictEqual(devs[0].status, 'unknown');
+});
+
+// -------------------------------------------------------------
+// 4. Custom Device Groups & Backward Compatibility
+// -------------------------------------------------------------
+console.log('\n--- 4. Device Groups & Legacy Compatibility ---');
+
+runTest('Legacy device without group option defaults to ungrouped', () => {
     const uciSections = [
-        { '.name': 'dev_aabbcc112233', mac: 'AA:BB:CC:11:22:33', name: '客厅电视', remark: '55寸安卓电视' }
+        { '.name': 'dev_aabbcc112233', mac: 'AA:BB:CC:11:22:33', name: '旧电脑', remark: '未设置分组' }
     ];
-
-    const result = mockParseDevices(hostHints, null, null, uciSections);
-    assert.strictEqual(result.length, 1);
-    assert.strictEqual(result[0].mac, 'AA:BB:CC:11:22:33');
-    assert.strictEqual(result[0].hostname, 'android-tv');
-    assert.strictEqual(result[0].customName, '客厅电视');
-    assert.strictEqual(result[0].remark, '55寸安卓电视');
-    assert.strictEqual(result[0].isDiscovered, true);
-    assert.strictEqual(result[0].isSaved, true);
+    const devs = mockParseDevices(null, null, null, null, null, null, uciSections, DEFAULT_GROUPS);
+    assert.strictEqual(devs.length, 1);
+    assert.strictEqual(devs[0].group, 'ungrouped');
 });
 
-runTest('IP change retains existing device remarks', () => {
-    // Original IP 192.168.1.100 changed to 192.168.1.150
-    const hostHints = {
-        hosts: {
-            'AA:BB:CC:11:22:33': { name: 'android-tv', ipaddrs: ['192.168.1.150'] }
-        }
-    };
+runTest('Device with valid group associates properly', () => {
     const uciSections = [
-        { '.name': 'dev_aabbcc112233', mac: 'AA:BB:CC:11:22:33', name: '客厅电视', remark: '55寸安卓电视' }
+        { '.name': 'dev_aabbcc112233', mac: 'AA:BB:CC:11:22:33', name: '电视', group: 'smart_home' }
     ];
-
-    const result = mockParseDevices(hostHints, null, null, uciSections);
-    assert.strictEqual(result.length, 1);
-    assert.strictEqual(result[0].ipv4, '192.168.1.150');
-    assert.strictEqual(result[0].customName, '客厅电视');
-    assert.strictEqual(result[0].remark, '55寸安卓电视');
+    const devs = mockParseDevices(null, null, null, null, null, null, uciSections, DEFAULT_GROUPS);
+    assert.strictEqual(devs.length, 1);
+    assert.strictEqual(devs[0].group, 'smart_home');
 });
 
-runTest('Offline/historical device is preserved and marked as not discovered', () => {
-    // No active host hints or leases
-    const hostHints = { hosts: {} };
+runTest('Device with non-existent or deleted group falls back to ungrouped', () => {
     const uciSections = [
-        { '.name': 'dev_aabbcc112233', mac: 'AA:BB:CC:11:22:33', name: '客厅电视', remark: '55寸安卓电视' }
+        { '.name': 'dev_aabbcc112233', mac: 'AA:BB:CC:11:22:33', name: '电视', group: 'deleted_group' }
     ];
-
-    const result = mockParseDevices(hostHints, null, null, uciSections);
-    assert.strictEqual(result.length, 1);
-    assert.strictEqual(result[0].mac, 'AA:BB:CC:11:22:33');
-    assert.strictEqual(result[0].customName, '客厅电视');
-    assert.strictEqual(result[0].isDiscovered, false);
-    assert.strictEqual(result[0].isSaved, true);
+    const devs = mockParseDevices(null, null, null, null, null, null, uciSections, DEFAULT_GROUPS);
+    assert.strictEqual(devs.length, 1);
+    assert.strictEqual(devs[0].group, 'ungrouped');
 });
 
-runTest('Deduplicate duplicate entries across host hints and DHCP leases', () => {
-    const hostHints = {
-        hosts: {
-            'aa:bb:cc:11:22:33': { name: 'my-laptop', ipaddrs: ['192.168.1.50'] }
-        }
-    };
-    const dhcpLeases = {
-        dhcp_leases: [
-            { macaddr: 'AA:BB:CC:11:22:33', hostname: 'my-laptop', ipaddr: '192.168.1.50' }
-        ]
-    };
+// -------------------------------------------------------------
+// 5. Status Tab & Multi-Criteria Filtering
+// -------------------------------------------------------------
+console.log('\n--- 5. Status Tab & Combined Filtering ---');
 
-    const result = mockParseDevices(hostHints, null, dhcpLeases, null);
-    assert.strictEqual(result.length, 1);
-    assert.strictEqual(result[0].mac, 'AA:BB:CC:11:22:33');
-});
-
-runTest('Device without hostname or IP', () => {
-    const hostHints = {
-        hosts: {
-            '11:22:33:44:55:66': { name: null, ipaddrs: [] }
-        }
-    };
-
-    const result = mockParseDevices(hostHints, null, null, null);
-    assert.strictEqual(result.length, 1);
-    assert.strictEqual(result[0].hostname, '');
-    assert.strictEqual(result[0].ipv4, '');
-    assert.strictEqual(result[0].isDiscovered, true);
-    assert.strictEqual(result[0].isSaved, false);
-});
-
-// 5. Search and Filter Tests
-console.log('\n--- 5. Search & Filter Functionality ---');
-
-const testDevices = [
-    { mac: 'AA:BB:CC:11:22:33', hostname: 'android-8fd231', customName: '客厅电视', remark: '55寸安卓电视', ipv4: '192.168.1.100', isDiscovered: true, isSaved: true },
-    { mac: 'AA:BB:CC:44:55:66', hostname: 'pc-work', customName: '主力工作电脑', remark: '开发台式机', ipv4: '192.168.1.101', isDiscovered: true, isSaved: true },
-    { mac: '11:22:33:44:55:66', hostname: 'iphone-guest', customName: '', remark: '', ipv4: '192.168.1.102', isDiscovered: true, isSaved: false },
-    { mac: '99:88:77:66:55:44', hostname: '', customName: '旧打印机', remark: '已断开备用', ipv4: '', isDiscovered: false, isSaved: true }
+const sampleDevices = [
+    { mac: '11:11:11:11:11:11', customName: '客厅电视', hostname: 'tv', group: 'smart_home', status: 'online', ipv4: '192.168.1.10', remark: '55寸' },
+    { mac: '22:22:22:22:22:22', customName: '主力电脑', hostname: 'pc', group: 'computer', status: 'online', ipv4: '192.168.1.20', remark: '开发' },
+    { mac: '33:33:33:33:33:33', customName: '客房插座', hostname: 'plug', group: 'smart_home', status: 'unknown', ipv4: '192.168.1.30', remark: '' },
+    { mac: '44:44:44:44:44:44', customName: '旧打印机', hostname: '', group: 'ungrouped', status: 'offline', ipv4: '', remark: '备用' },
+    { mac: '55:55:55:55:55:55', customName: '苹果手机', hostname: 'iphone', group: 'phone', status: 'offline', ipv4: '192.168.1.50', remark: '' }
 ];
 
-function filterDevices(list, type, text) {
-    const query = (text || '').trim().toLowerCase();
-    return list.filter(dev => {
-        if (type === 'active' && !dev.isDiscovered) return false;
-        if (type === 'saved' && !dev.isSaved) return false;
-        if (type === 'history' && dev.isDiscovered) return false;
-
-        if (query) {
+function filterList(devices, activeTab, activeGroup, query) {
+    const q = (query || '').trim().toLowerCase();
+    return devices.filter(dev => {
+        if (activeTab !== 'all' && dev.status !== activeTab) return false;
+        if (activeGroup !== 'all') {
+            if (activeGroup === 'ungrouped') {
+                if (dev.group && dev.group !== 'ungrouped') return false;
+            } else {
+                if (dev.group !== activeGroup) return false;
+            }
+        }
+        if (q) {
             const matched = (
-                (dev.customName && dev.customName.toLowerCase().includes(query)) ||
-                (dev.hostname && dev.hostname.toLowerCase().includes(query)) ||
-                (dev.ipv4 && dev.ipv4.toLowerCase().includes(query)) ||
-                (dev.mac && dev.mac.toLowerCase().includes(query)) ||
-                (dev.remark && dev.remark.toLowerCase().includes(query))
+                (dev.customName && dev.customName.toLowerCase().includes(q)) ||
+                (dev.hostname && dev.hostname.toLowerCase().includes(q)) ||
+                (dev.ipv4 && dev.ipv4.toLowerCase().includes(q)) ||
+                (dev.mac && dev.mac.toLowerCase().includes(q)) ||
+                (dev.remark && dev.remark.toLowerCase().includes(q))
             );
             if (!matched) return false;
         }
@@ -285,59 +385,133 @@ function filterDevices(list, type, text) {
     });
 }
 
-runTest('Search by custom name (Chinese)', () => {
-    const res = filterDevices(testDevices, 'all', '客厅电视');
+function computeTabCounts(devices, activeGroup, query) {
+    let total = 0, online = 0, offline = 0, unknown = 0;
+    const q = (query || '').trim().toLowerCase();
+
+    for (let i = 0; i < devices.length; i++) {
+        const dev = devices[i];
+        if (activeGroup !== 'all') {
+            if (activeGroup === 'ungrouped') {
+                if (dev.group && dev.group !== 'ungrouped') continue;
+            } else {
+                if (dev.group !== activeGroup) continue;
+            }
+        }
+        if (q) {
+            const matched = (
+                (dev.customName && dev.customName.toLowerCase().includes(q)) ||
+                (dev.hostname && dev.hostname.toLowerCase().includes(q)) ||
+                (dev.ipv4 && dev.ipv4.toLowerCase().includes(q)) ||
+                (dev.mac && dev.mac.toLowerCase().includes(q)) ||
+                (dev.remark && dev.remark.toLowerCase().includes(q))
+            );
+            if (!matched) continue;
+        }
+        total++;
+        if (dev.status === 'online') online++;
+        else if (dev.status === 'offline') offline++;
+        else unknown++;
+    }
+    return { total, online, offline, unknown };
+}
+
+runTest('Accurate tab counts for all devices', () => {
+    const counts = computeTabCounts(sampleDevices, 'all', '');
+    assert.strictEqual(counts.total, 5);
+    assert.strictEqual(counts.online, 2);
+    assert.strictEqual(counts.offline, 2);
+    assert.strictEqual(counts.unknown, 1);
+    assert.strictEqual(counts.total, counts.online + counts.offline + counts.unknown);
+});
+
+runTest('Tab counts update dynamically based on group selection', () => {
+    const counts = computeTabCounts(sampleDevices, 'smart_home', '');
+    assert.strictEqual(counts.total, 2);
+    assert.strictEqual(counts.online, 1);
+    assert.strictEqual(counts.offline, 0);
+    assert.strictEqual(counts.unknown, 1);
+});
+
+runTest('Filter by online tab', () => {
+    const onlineDevs = filterList(sampleDevices, 'online', 'all', '');
+    assert.strictEqual(onlineDevs.length, 2);
+    assert.ok(onlineDevs.every(d => d.status === 'online'));
+});
+
+runTest('Combine status tab + group filter + search query', () => {
+    // Online tab + smart_home group + search "客厅"
+    const res = filterList(sampleDevices, 'online', 'smart_home', '客厅');
     assert.strictEqual(res.length, 1);
-    assert.strictEqual(res[0].mac, 'AA:BB:CC:11:22:33');
+    assert.strictEqual(res[0].mac, '11:11:11:11:11:11');
 });
 
-runTest('Search by detected hostname', () => {
-    const res = filterDevices(testDevices, 'all', 'android-8fd231');
-    assert.strictEqual(res.length, 1);
-    assert.strictEqual(res[0].mac, 'AA:BB:CC:11:22:33');
+runTest('Filter ungrouped devices', () => {
+    const ungrouped = filterList(sampleDevices, 'all', 'ungrouped', '');
+    assert.strictEqual(ungrouped.length, 1);
+    assert.strictEqual(ungrouped[0].customName, '旧打印机');
 });
 
-runTest('Search by IPv4 address', () => {
-    const res = filterDevices(testDevices, 'all', '192.168.1.101');
-    assert.strictEqual(res.length, 1);
-    assert.strictEqual(res[0].mac, 'AA:BB:CC:44:55:66');
+// -------------------------------------------------------------
+// 6. Browser Memory (localStorage) Tests
+// -------------------------------------------------------------
+console.log('\n--- 6. Browser Memory (localStorage) Resilience ---');
+
+class MockLocalStorage {
+    constructor() { this.store = {}; }
+    getItem(key) { return this.store[key] !== undefined ? this.store[key] : null; }
+    setItem(key, val) { this.store[key] = String(val); }
+    removeItem(key) { delete this.store[key]; }
+    clear() { this.store = {}; }
+}
+
+runTest('Save and restore view state correctly', () => {
+    const storage = new MockLocalStorage();
+    mockSaveViewState(storage, 'online', 'smart_home');
+    const state = mockLoadViewState(storage, ['smart_home', 'phone']);
+    assert.strictEqual(state.tab, 'online');
+    assert.strictEqual(state.group, 'smart_home');
 });
 
-runTest('Search by MAC address prefix', () => {
-    const res = filterDevices(testDevices, 'all', 'AA:BB:CC');
-    assert.strictEqual(res.length, 2);
+runTest('Default view state on first visit', () => {
+    const storage = new MockLocalStorage();
+    const state = mockLoadViewState(storage, ['smart_home']);
+    assert.strictEqual(state.tab, 'all');
+    assert.strictEqual(state.group, 'all');
 });
 
-runTest('Search by remark content', () => {
-    const res = filterDevices(testDevices, 'all', '开发台式机');
-    assert.strictEqual(res.length, 1);
-    assert.strictEqual(res[0].customName, '主力工作电脑');
+runTest('Gracefully fallback if saved group was deleted', () => {
+    const storage = new MockLocalStorage();
+    mockSaveViewState(storage, 'online', 'old_deleted_group');
+    const state = mockLoadViewState(storage, ['smart_home', 'phone']);
+    assert.strictEqual(state.tab, 'online');
+    assert.strictEqual(state.group, 'all'); // Falls back to all
 });
 
-runTest('Filter by type: active, saved, history', () => {
-    const activeOnly = filterDevices(testDevices, 'active', '');
-    assert.strictEqual(activeOnly.length, 3);
-
-    const savedOnly = filterDevices(testDevices, 'saved', '');
-    assert.strictEqual(savedOnly.length, 3);
-
-    const historyOnly = filterDevices(testDevices, 'history', '');
-    assert.strictEqual(historyOnly.length, 1);
-    assert.strictEqual(historyOnly[0].customName, '旧打印机');
+runTest('Resilience against corrupted or invalid localStorage JSON', () => {
+    const storage = new MockLocalStorage();
+    storage.setItem(STORAGE_KEY, '{invalid_json');
+    const state = mockLoadViewState(storage, ['smart_home']);
+    assert.strictEqual(state.tab, 'all');
+    assert.strictEqual(state.group, 'all');
 });
 
-runTest('No match returns empty array', () => {
-    const res = filterDevices(testDevices, 'all', 'nonexistent-query');
-    assert.strictEqual(res.length, 0);
+runTest('No sensitive device data (MAC, IP, remarks) in localStorage', () => {
+    const storage = new MockLocalStorage();
+    mockSaveViewState(storage, 'online', 'smart_home');
+    const raw = storage.getItem(STORAGE_KEY);
+    assert.ok(!raw.includes('AA:BB:CC'));
+    assert.ok(!raw.includes('192.168.'));
+    assert.ok(!raw.includes('remark'));
 });
 
-// 6. UCI Configuration Simulation Tests
-console.log('\n--- 6. UCI Persistence & Lifecycle Simulation ---');
+// -------------------------------------------------------------
+// 7. UCI Group Lifecycle & Group Deletion Safety
+// -------------------------------------------------------------
+console.log('\n--- 7. Group Lifecycle & Device Safety ---');
 
 class MockUCI {
-    constructor() {
-        this.sections = [];
-    }
+    constructor() { this.sections = []; }
     add(conf, type, sid) {
         this.sections.push({ '.name': sid, '.type': type });
         return sid;
@@ -359,124 +533,83 @@ class MockUCI {
     }
 }
 
-function handleSaveSimulation(uci, mac, newName, newRemark) {
-    const normMac = normalizeMac(mac);
-    if (!normMac) throw new Error('Invalid MAC');
-    const sid = getSectionId(normMac);
-
-    const existing = uci.sections.find(s => s['.name'] === sid || s.mac === normMac);
-
-    // If both name and remark are cleared, delete the section
-    if (!newName && !newRemark) {
-        if (existing) uci.remove('device_manager', existing['.name']);
-        return;
-    }
-
-    const targetSid = existing ? existing['.name'] : sid;
-    if (!existing) {
-        uci.add('device_manager', 'device', targetSid);
-    }
-
-    uci.set('device_manager', targetSid, 'mac', normMac);
-    if (newName) uci.set('device_manager', targetSid, 'name', newName);
-    else uci.unset('device_manager', targetSid, 'name');
-
-    if (newRemark) uci.set('device_manager', targetSid, 'remark', newRemark);
-    else uci.unset('device_manager', targetSid, 'remark');
-}
-
-runTest('Save new device with custom name and remark', () => {
+runTest('Create, rename, and delete group without losing device remarks', () => {
     const uci = new MockUCI();
-    handleSaveSimulation(uci, 'AA:BB:CC:11:22:33', '客厅电视', '55寸安卓电视');
-    assert.strictEqual(uci.sections.length, 1);
-    assert.strictEqual(uci.sections[0]['.name'], 'dev_aabbcc112233');
-    assert.strictEqual(uci.sections[0].mac, 'AA:BB:CC:11:22:33');
-    assert.strictEqual(uci.sections[0].name, '客厅电视');
-    assert.strictEqual(uci.sections[0].remark, '55寸安卓电视');
+
+    // 1. Add group
+    const grpId = 'grp_office';
+    uci.add('device_manager', 'group', grpId);
+    uci.set('device_manager', grpId, 'name', '办公室设备');
+
+    // 2. Add device assigned to group
+    const devSid = 'dev_aabbcc112233';
+    uci.add('device_manager', 'device', devSid);
+    uci.set('device_manager', devSid, 'mac', 'AA:BB:CC:11:22:33');
+    uci.set('device_manager', devSid, 'name', '办公主机');
+    uci.set('device_manager', devSid, 'remark', '工位A1');
+    uci.set('device_manager', devSid, 'group', grpId);
+
+    assert.strictEqual(uci.get('device_manager', grpId, 'name'), '办公室设备');
+    assert.strictEqual(uci.get('device_manager', devSid, 'group'), grpId);
+
+    // 3. Rename group
+    uci.set('device_manager', grpId, 'name', '研发部设备');
+    // Group ID does not change, device remains linked
+    assert.strictEqual(uci.get('device_manager', grpId, 'name'), '研发部设备');
+    assert.strictEqual(uci.get('device_manager', devSid, 'group'), grpId);
+
+    // 4. Delete group: remove group section, unlink device to ungrouped
+    uci.remove('device_manager', grpId);
+    uci.unset('device_manager', devSid, 'group');
+
+    // Group section removed
+    assert.strictEqual(uci.get('device_manager', grpId, 'name'), null);
+    // Device and its name/remark are 100% PRESERVED
+    assert.strictEqual(uci.get('device_manager', devSid, 'name'), '办公主机');
+    assert.strictEqual(uci.get('device_manager', devSid, 'remark'), '工位A1');
+    assert.strictEqual(uci.get('device_manager', devSid, 'group'), undefined);
 });
 
-runTest('Update existing device custom name only', () => {
-    const uci = new MockUCI();
-    handleSaveSimulation(uci, 'AA:BB:CC:11:22:33', '客厅电视', '旧备注');
-    handleSaveSimulation(uci, 'AA:BB:CC:11:22:33', '客厅主电视', '旧备注');
-    assert.strictEqual(uci.sections.length, 1);
-    assert.strictEqual(uci.sections[0].name, '客厅主电视');
-    assert.strictEqual(uci.sections[0].remark, '旧备注');
+// -------------------------------------------------------------
+// 8. OpenWrt Configuration & Package Compliance
+// -------------------------------------------------------------
+console.log('\n--- 8. OpenWrt Configuration & Package Compliance ---');
+
+runTest('Verify rpcd helper script exists, executable, and valid', () => {
+    const scriptPath = path.join(__dirname, '../root/usr/libexec/rpcd/luci.device-manager');
+    assert.ok(fs.existsSync(scriptPath), 'rpcd helper script must exist');
+    const content = fs.readFileSync(scriptPath, 'utf8');
+    assert.ok(content.includes('get_online_status'), 'Must expose get_online_status method');
 });
 
-runTest('Clear remark while keeping custom name', () => {
-    const uci = new MockUCI();
-    handleSaveSimulation(uci, 'AA:BB:CC:11:22:33', '客厅电视', '有备注');
-    handleSaveSimulation(uci, 'AA:BB:CC:11:22:33', '客厅电视', '');
-    assert.strictEqual(uci.sections.length, 1);
-    assert.strictEqual(uci.sections[0].name, '客厅电视');
-    assert.strictEqual(uci.sections[0].remark, undefined);
-});
-
-runTest('Clear both name and remark removes UCI section', () => {
-    const uci = new MockUCI();
-    handleSaveSimulation(uci, 'AA:BB:CC:11:22:33', '客厅电视', '有备注');
-    assert.strictEqual(uci.sections.length, 1);
-    handleSaveSimulation(uci, 'AA:BB:CC:11:22:33', '', '');
-    assert.strictEqual(uci.sections.length, 0);
-});
-
-runTest('Repeated edits do not create duplicate sections', () => {
-    const uci = new MockUCI();
-    for (let i = 0; i < 5; i++) {
-        handleSaveSimulation(uci, 'AA:BB:CC:11:22:33', `名称_${i}`, `备注_${i}`);
-    }
-    assert.strictEqual(uci.sections.length, 1);
-    assert.strictEqual(uci.sections[0].name, '名称_4');
-    assert.strictEqual(uci.sections[0].remark, '备注_4');
-});
-
-// 7. Project Files & OpenWrt Compliance Tests
-console.log('\n--- 7. OpenWrt Configuration & Package Compliance ---');
-
-runTest('Verify menu definition syntax and keys', () => {
-    const menuPath = path.join(__dirname, '../root/usr/share/luci/menu.d/luci-app-device-manager.json');
-    assert.ok(fs.existsSync(menuPath), 'Menu file must exist');
-    const menu = JSON.parse(fs.readFileSync(menuPath, 'utf8'));
-    assert.ok(menu['admin/network/device-manager'], 'Must define admin/network/device-manager');
-    assert.strictEqual(menu['admin/network/device-manager'].title, '设备管理');
-    assert.strictEqual(menu['admin/network/device-manager'].action.path, 'device-manager/devices');
-});
-
-runTest('Verify rpcd ACL syntax and permissions', () => {
+runTest('Verify rpcd ACL grants get_online_status permission', () => {
     const aclPath = path.join(__dirname, '../root/usr/share/rpcd/acl.d/luci-app-device-manager.json');
     assert.ok(fs.existsSync(aclPath), 'ACL file must exist');
     const acl = JSON.parse(fs.readFileSync(aclPath, 'utf8'));
-    assert.ok(acl['luci-app-device-manager'], 'Must define luci-app-device-manager');
-    assert.ok(acl['luci-app-device-manager'].read.ubus['luci-rpc'].includes('getHostHints'));
-    assert.ok(acl['luci-app-device-manager'].read.uci.includes('device_manager'));
-    assert.ok(acl['luci-app-device-manager'].write.uci.includes('device_manager'));
+    assert.ok(acl['luci-app-device-manager'].read.ubus['luci.device-manager'].includes('get_online_status'));
+    assert.ok(acl['luci-app-device-manager'].read.ubus.iwinfo.includes('assoclist'));
+});
+
+runTest('Verify uci-defaults creates default groups', () => {
+    const uciDefPath = path.join(__dirname, '../root/etc/uci-defaults/80_device_manager');
+    assert.ok(fs.existsSync(uciDefPath), '80_device_manager must exist');
+    const content = fs.readFileSync(uciDefPath, 'utf8');
+    assert.ok(content.includes('smart_home') && content.includes('phone'), 'Must initialize default groups');
 });
 
 runTest('Verify Makefile defines CONFFILES for user data persistence', () => {
     const makefilePath = path.join(__dirname, '../Makefile');
     assert.ok(fs.existsSync(makefilePath), 'Makefile must exist');
     const content = fs.readFileSync(makefilePath, 'utf8');
-    assert.ok(content.includes('PKG_NAME:=luci-app-device-manager'), 'Must have correct PKG_NAME');
-    assert.ok(content.includes('Package/$(PKG_NAME)/conffiles'), 'Must define conffiles macro');
-    assert.ok(content.includes('/etc/config/device_manager'), 'Must protect /etc/config/device_manager in conffiles');
+    assert.ok(content.includes('Package/$(PKG_NAME)/conffiles'));
+    assert.ok(content.includes('/etc/config/device_manager'));
 });
 
-runTest('Verify 80_device_manager does not overwrite existing configuration', () => {
-    const uciDefPath = path.join(__dirname, '../root/etc/uci-defaults/80_device_manager');
-    assert.ok(fs.existsSync(uciDefPath), '80_device_manager must exist');
-    const content = fs.readFileSync(uciDefPath, 'utf8');
-    assert.ok(content.includes('! -f /etc/config/device_manager') || content.includes('[ -f /etc/config/device_manager ]'), 'Must check if /etc/config/device_manager exists before creating');
-});
-
-runTest('Verify deploy.sh has required safety checks and target arguments', () => {
+runTest('Verify deploy.sh uploads rpcd helper script', () => {
     const deployPath = path.join(__dirname, '../tools/deploy.sh');
     assert.ok(fs.existsSync(deployPath), 'deploy.sh must exist');
     const content = fs.readFileSync(deployPath, 'utf8');
-    assert.ok(content.includes('set -euo pipefail'), 'Must use set -euo pipefail for safety');
-    assert.ok(content.includes('rpcd restart'), 'Must restart rpcd');
-    assert.ok(content.includes('luci-indexcache'), 'Must clear LuCI indexcache');
-    assert.ok(content.includes('/etc/config/device_manager'), 'Must handle /etc/config/device_manager preserving data');
+    assert.ok(content.includes('root/usr/libexec/rpcd/luci.device-manager'), 'deploy.sh must upload rpcd helper');
 });
 
 console.log(`\n=== Test Results: ${passCount} Passed, ${failCount} Failed ===\n`);

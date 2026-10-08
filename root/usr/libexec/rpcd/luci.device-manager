@@ -1,0 +1,34 @@
+#!/bin/sh
+
+case "$1" in
+	list)
+		echo '{ "get_online_status": {} }'
+		;;
+	call)
+		case "$2" in
+			get_online_status)
+				printf '{"neighbors":['
+				first=1
+				ip neigh show 2>/dev/null | while read -r ip rest; do
+					mac=""
+					state=""
+					dev=""
+					prev=""
+					for word in $rest; do
+						if [ "$prev" = "dev" ]; then
+							dev="$word"
+						elif [ "$prev" = "lladdr" ]; then
+							mac="$word"
+						fi
+						state="$word"
+						prev="$word"
+					done
+					[ -z "$mac" ] && continue
+					[ "$first" -eq 1 ] && first=0 || printf ','
+					printf '{"ip":"%s","mac":"%s","dev":"%s","state":"%s"}' "$ip" "$mac" "$dev" "$state"
+				done
+				printf ']}\n'
+				;;
+		esac
+		;;
+esac

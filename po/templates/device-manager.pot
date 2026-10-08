@@ -9,3 +9,4 @@ msgstr ""
 
 msgid "Manage local network devices, set custom device names and remarks."
 msgstr ""
+

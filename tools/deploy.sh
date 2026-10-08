@@ -147,6 +147,7 @@ ssh "${SSH_OPTS[@]}" "${SSH_TARGET}" "
     mkdir -p /www/luci-static/resources/view/device-manager \
              /usr/share/luci/menu.d \
              /usr/share/rpcd/acl.d \
+             /usr/libexec/rpcd \
              /etc/uci-defaults \
              /etc/config
 "
@@ -165,6 +166,14 @@ scp "${SCP_OPTS[@]}" \
     "${PROJECT_ROOT}/root/usr/share/rpcd/acl.d/luci-app-device-manager.json" \
     "${SSH_TARGET}:/usr/share/rpcd/acl.d/luci-app-device-manager.json"
 
+if [[ -f "${PROJECT_ROOT}/root/usr/libexec/rpcd/luci.device-manager" ]]; then
+    print_info "Deploying rpcd helper backend script..."
+    scp "${SCP_OPTS[@]}" \
+        "${PROJECT_ROOT}/root/usr/libexec/rpcd/luci.device-manager" \
+        "${SSH_TARGET}:/usr/libexec/rpcd/luci.device-manager"
+    ssh "${SSH_OPTS[@]}" "${SSH_TARGET}" "chmod +x /usr/libexec/rpcd/luci.device-manager"
+fi
+
 if [[ -f "${PROJECT_ROOT}/root/etc/uci-defaults/80_device_manager" ]]; then
     print_info "Deploying uci-defaults initialization script..."
     scp "${SCP_OPTS[@]}" \
@@ -176,12 +185,14 @@ print_info "Ensuring configuration persistence (protecting existing user remarks
 ssh "${SSH_OPTS[@]}" "${SSH_TARGET}" "
     if [ ! -f /etc/config/device_manager ]; then
         touch /etc/config/device_manager
-        uci commit device_manager
         echo 'Initialized empty /etc/config/device_manager'
     else
         echo 'Existing /etc/config/device_manager preserved.'
     fi
-    [ -f /etc/uci-defaults/80_device_manager ] && chmod +x /etc/uci-defaults/80_device_manager
+    if [ -f /etc/uci-defaults/80_device_manager ]; then
+        chmod +x /etc/uci-defaults/80_device_manager
+        /etc/uci-defaults/80_device_manager
+    fi
 "
 
 print_info "Clearing LuCI cache and restarting rpcd..."
@@ -202,3 +213,4 @@ printf "  ${YELLOW}Note:${NC} If you are already logged in, please refresh the p
 printf "  with ${CYAN}Ctrl + Shift + R${NC} to clear browser JavaScript cache.\n"
 printf "${CYAN}================================================================${NC}\n"
 EOF
+

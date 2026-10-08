@@ -32,7 +32,9 @@ jobs:
         run: |
           bash -n tools/deploy.sh
           sh -n root/etc/uci-defaults/80_device_manager
+          sh -n root/usr/libexec/rpcd/luci.device-manager
 
       - name: Run automated unit tests
         run: |
           node test/test_device_manager.js
+

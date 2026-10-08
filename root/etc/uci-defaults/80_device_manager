@@ -2,7 +2,29 @@
 
 if [ ! -f /etc/config/device_manager ]; then
 	touch /etc/config/device_manager
-	uci commit device_manager
 fi
+
+# Ensure default groups exist if not present
+uci get device_manager.smart_home >/dev/null 2>&1 || {
+	uci set device_manager.smart_home=group
+	uci set device_manager.smart_home.name='智能家居'
+}
+uci get device_manager.phone >/dev/null 2>&1 || {
+	uci set device_manager.phone=group
+	uci set device_manager.phone.name='手机设备'
+}
+uci get device_manager.computer >/dev/null 2>&1 || {
+	uci set device_manager.computer=group
+	uci set device_manager.computer.name='电脑设备'
+}
+uci get device_manager.network >/dev/null 2>&1 || {
+	uci set device_manager.network=group
+	uci set device_manager.network.name='网络设备'
+}
+uci get device_manager.other >/dev/null 2>&1 || {
+	uci set device_manager.other=group
+	uci set device_manager.other.name='其他设备'
+}
+uci commit device_manager
 
 exit 0

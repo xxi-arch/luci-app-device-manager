@@ -1,3 +1,17 @@
 # LAN Device Manager configuration
-# Stores custom device names and remarks mapped by MAC address.
+# Stores custom device names, remarks, and groups mapped by MAC address.
 
+config group 'smart_home'
+	option name '智能家居'
+
+config group 'phone'
+	option name '手机设备'
+
+config group 'computer'
+	option name '电脑设备'
+
+config group 'network'
+	option name '网络设备'
+
+config group 'other'
+	option name '其他设备'
