@@ -62,6 +62,17 @@ return baseclass.extend({
 			groupSelect.appendChild(opt);
 		}
 
+		const curType = isEdit ? (dev.customType || dev.type || 'auto') : 'auto';
+		const lang = i18n.detectLanguage();
+		const typeSelect = E('select', { 'class': 'cbi-input-select', 'style': 'width:100%;' }, [
+			E('option', { 'value': 'auto' }, [ lang === 'zh' ? '自动 (根据MAC识别)' : 'Auto (detect by MAC)' ])
+		]);
+		for (const [ typeKey, typeObj ] of Object.entries(model.DEVICE_TYPES)) {
+			const opt = E('option', { 'value': typeKey }, [ lang === 'zh' ? typeObj.zh : typeObj.en ]);
+			if (curType === typeKey) opt.selected = true;
+			typeSelect.appendChild(opt);
+		}
+
 		const nameInput = E('input', {
 			'type': 'text',
 			'class': 'cbi-input-text',
@@ -113,6 +124,17 @@ return baseclass.extend({
 
 		formFields.push(
 			E('div', { 'class': 'cbi-value' }, [
+				E('label', { 'class': 'cbi-value-title' }, [ lang === 'zh' ? '设备类型' : 'Device type' ]),
+				E('div', { 'class': 'cbi-value-field' }, [
+					typeSelect,
+					E('div', { 'class': 'cbi-value-description' }, [
+						lang === 'zh'
+							? '默认根据MAC地址自动识别，也可手动指定显示图标'
+							: 'Automatically detected by MAC address, or customize manually'
+					])
+				])
+			]),
+			E('div', { 'class': 'cbi-value' }, [
 				E('label', { 'class': 'cbi-value-title' }, [ i18n.t('Device group') ]),
 				E('div', { 'class': 'cbi-value-field' }, [
 					groupSelect,
@@ -158,11 +180,12 @@ return baseclass.extend({
 				const newName = model.sanitizeInput(nameInput.value);
 				const newRemark = model.sanitizeInput(remarkTextarea.value);
 				const newGroup = groupSelect.value || 'ungrouped';
+				const newType = typeSelect.value || 'auto';
 
 				button.classList.add('spinning');
 				button.disabled = true;
 
-				return self.handleSaveDevice(normMac, newName, newRemark, newGroup, dev)
+				return self.handleSaveDevice(normMac, newName, newRemark, newGroup, dev, newType)
 					.then(function() {
 						ui.hideModal();
 						ui.addNotification(null, E('p', [ i18n.t('Device "%s" saved.').format(newName || normMac) ]), 'info');

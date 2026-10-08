@@ -22,3 +22,12 @@
 
 .dm-status-tab:focus-visible { outline:2px solid #1a73e8; outline-offset:2px; }
 .dm-source-warning { overflow-wrap:anywhere; }
+
+.dm-type-th { width: 56px; text-align: center; }
+.dm-type-cell { text-align: center; vertical-align: middle; padding: 6px 8px; }
+.dm-device-icon-wrap { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 6px; background: rgba(0, 0, 0, 0.04); vertical-align: middle; transition: all 0.15s ease; }
+.dm-device-icon-wrap:hover { background: rgba(26, 115, 232, 0.12); transform: scale(1.06); }
+.dm-device-icon { width: 20px; height: 20px; display: block; }
+[data-theme="dark"] .dm-device-icon-wrap,
+body.dark-mode .dm-device-icon-wrap { background: rgba(255, 255, 255, 0.08); }
+

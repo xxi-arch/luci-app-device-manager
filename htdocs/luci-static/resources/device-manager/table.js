@@ -107,7 +107,7 @@ return baseclass.extend({
 				emptyMsg = i18n.t('No devices in this group');
 
 			this.tableBodyNode.appendChild(E('tr', { 'class': 'tr' }, [
-				E('td', { 'class': 'td', 'colspan': 6, 'style': 'text-align:center; padding:36px 16px; color:#888;' }, [ emptyMsg ])
+				E('td', { 'class': 'td', 'colspan': 7, 'style': 'text-align:center; padding:36px 16px; color:#888;' }, [ emptyMsg ])
 			]));
 			return;
 		}
@@ -119,6 +119,21 @@ return baseclass.extend({
 
 	renderDeviceRow: function(dev) {
 		const self = this;
+
+		// 0. Device type icon column
+		const lang = i18n.detectLanguage();
+		const typeInfo = model.getTypeInfo(dev.type);
+		const typeLabel = model.getTypeLabel(dev.type, lang);
+		const iconNode = E('span', {
+			'class': 'dm-device-icon-wrap',
+			'title': typeLabel
+		}, [
+			E('img', {
+				'class': 'dm-device-icon',
+				'src': L.resource('device-manager/device-icons/' + typeInfo.icon),
+				'alt': typeLabel
+			})
+		]);
 
 		// 1. Device name column
 		const displayName = dev.customName || dev.hostname || i18n.t('Unknown device');
@@ -199,6 +214,7 @@ return baseclass.extend({
 		}
 
 		return E('tr', { 'class': 'tr' }, [
+			E('td', { 'class': 'td dm-type-cell', 'style': 'text-align:center; vertical-align:middle;' }, [ iconNode ]),
 			E('td', { 'class': 'td' }, nameChildren),
 			E('td', { 'class': 'td' }, ipChildren),
 			E('td', { 'class': 'td' }, macNode),

@@ -113,6 +113,7 @@ return view.extend({
 				E('div', { 'class': 'dm-table-wrapper' }, [
 					E('table', { 'class': 'table dm-table', 'id': 'device_manager_table' }, [
 						E('thead', {}, [ E('tr', { 'class': 'tr table-titles' }, [
+							E('th', { 'class': 'th dm-type-th', 'style': 'width:56px; text-align:center;' }, [ (i18n.detectLanguage() === 'zh' ? '类型' : 'Type') ]),
 							E('th', { 'class': 'th', 'style': 'width:24%;' }, [ i18n.t('Device name') ]),
 							E('th', { 'class': 'th', 'style': 'width:18%;' }, [ i18n.t('IP address') ]),
 							E('th', { 'class': 'th', 'style': 'width:18%;' }, [ i18n.t('MAC address') ]),
@@ -146,7 +147,7 @@ return view.extend({
 	showGroupModal: function() { return groupDialog.showGroupModal.call(this); },
 	promptRenameGroup: function(group) { return groupDialog.promptRenameGroup.call(this, group); },
 	confirmDeleteGroup: function(group, count) { return groupDialog.confirmDeleteGroup.call(this, group, count); },
-	handleSaveDevice: function(mac, name, remark, group) { return service.saveDevice(mac, name, remark, group); },
+	handleSaveDevice: function(mac, name, remark, group, dev, type) { return service.saveDevice(mac, name, remark, group, type); },
 	handleDeleteDevice: function(device) { return service.deleteDevice(device); },
 	handleAddGroup: function(name) { return service.addGroup(name); },
 	handleRenameGroup: function(id, name) { return service.renameGroup(id, name); },

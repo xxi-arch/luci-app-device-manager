@@ -5,6 +5,7 @@
 轻量级 OpenWrt LuCI 局域网设备管理插件。
 
 - **自动发现设备**：展示设备名称、MAC、IPv4 和 IPv6 地址。
+- **设备类型与图标识别**：根据 MAC 地址 OUI 及主机名智能识别设备类型（台式机、笔记本、手机、平板、电视、电视盒子、NAS、打印机、摄像头、音箱、游戏机、路由器、交换机、AP、服务器、插座、灯具、传感器、智能家居、手表、汽车、VR、网络设备等 24 类），并在表格第一列展示 Lucide 图标，支持手动自定义。
 - **设备状态识别**：区分在线、离线与状态未知。
 - **名称与备注**：自定义设备名称、位置和用途，按 MAC 地址长期保存。
 - **设备分组**：支持新增、重命名、删除分组及分配设备；删除分组保留设备信息。
@@ -20,6 +21,7 @@
 A lightweight LAN device manager for OpenWrt LuCI.
 
 - **Automatic discovery**: View device names, MAC addresses, IPv4 and IPv6 addresses.
+- **Device type & Lucide icons**: Automatically identifies device type based on MAC address OUI and hostnames (24 types including computers, laptops, phones, tablets, TVs, TV boxes, NAS, printers, cameras, speakers, game consoles, routers, switches, APs, servers, plugs, lights, sensors, smart home, watches, cars, VR headsets, and network devices) and displays Lucide icons in the first column, with manual override support.
 - **Device status**: Distinguish online, offline and unknown states.
 - **Custom names and remarks**: Save names, locations and purposes by MAC address.
 - **Device groups**: Create, rename, delete and assign groups without losing device information.

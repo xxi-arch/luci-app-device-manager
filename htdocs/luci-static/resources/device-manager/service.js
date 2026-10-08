@@ -130,7 +130,7 @@ return baseclass.extend({
 			}).finally(() => uci.unload(CONFIG));
 		});
 	},
-	saveDevice: function(mac, name, remark, group) {
+	saveDevice: function(mac, name, remark, group, type) {
 		return this.mutate(() => {
 			const normalized = model.normalizeMac(mac);
 			if (!normalized) throw new Error(i18n.t('Enter a valid MAC address'));
@@ -145,7 +145,8 @@ return baseclass.extend({
 			for (const section of matches) if (section['.name'] !== sid) uci.remove(CONFIG, section['.name']);
 			uci.set(CONFIG, sid, 'mac', normalized);
 			for (const [ key, value ] of Object.entries({ name: deviceName, remark: deviceRemark,
-				group: group && group !== 'ungrouped' ? group : '' })) {
+				group: group && group !== 'ungrouped' ? group : '',
+				type: type && type !== 'auto' ? type : '' })) {
 				if (value) uci.set(CONFIG, sid, key, value);
 				else uci.unset(CONFIG, sid, key);
 			}
