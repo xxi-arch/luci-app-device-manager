@@ -13,9 +13,11 @@ function temporary(fn) {
 }
 function rpc(command, prefix, directory, neighbors, exit = '0', method = 'get_online_status', language = 'auto', uciExit = '0') {
     const source = fs.readFileSync(path.join(root, 'root/usr/libexec/rpcd/luci.device-manager'), 'utf8')
-        .replaceAll('. /usr/share/libubox/jshn.sh', '. "$AUDIT_JSHN"');
-    const wrapper = 'ip() { printf "%s\\n" "$AUDIT_NEIGH"; return "$AUDIT_IP_EXIT"; }\n' +
-        'uci() { if [ "$AUDIT_UCI_EXIT" = 0 ]; then printf "%s\\n" "$AUDIT_LANGUAGE"; fi; return "$AUDIT_UCI_EXIT"; }\n' + source;
+        .replaceAll('. /usr/share/libubox/jshn.sh', '. "$AUDIT_JSHN"')
+        .replaceAll('/tmp/luci-device-manager-probe', path.join(directory, 'probe'));
+    const wrapper = 'ip() { [ "$1" = -4 ] && return 0; printf "%s\\n" "$AUDIT_NEIGH"; return "$AUDIT_IP_EXIT"; }\n' +
+        'uci() { [ "$3" = network.lan.ipaddr ] && return 1; if [ "$AUDIT_UCI_EXIT" = 0 ]; then printf "%s\\n" "$AUDIT_LANGUAGE"; fi; return "$AUDIT_UCI_EXIT"; }\n' +
+        'ping() { return 1; }\n' + source;
     return spawnSync(command, [...prefix, '-c', wrapper, 'luci.device-manager', 'call', method], { encoding: 'utf8', env: {
         ...process.env, AUDIT_NEIGH: neighbors, AUDIT_IP_EXIT: exit, AUDIT_LANGUAGE: language, AUDIT_UCI_EXIT: uciExit,
         AUDIT_JSHN: path.join(root, 'test/helpers/jshn.sh'), AUDIT_NODE: process.execPath,

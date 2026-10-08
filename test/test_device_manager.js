@@ -182,7 +182,7 @@ test('preference corruption and inaccessible storage safely fall back', async ()
     for (const storage of [{ getItem: () => '{broken' }, { getItem() { throw Error('blocked'); } }]) {
         const env = environment({ window: { localStorage: storage } });
         const preferences = loadModule('device-manager.preferences', env);
-        assert.deepEqual(await preferences.load(), { tab: 'all', group: 'all' });
+        assert.deepEqual(await preferences.load(), { tab: 'online', group: 'all' });
         await preferences.save('online', 'home');
     }
 });
@@ -288,10 +288,11 @@ test('tab counts match group/search filters and tabs support keyboard activation
     ctx.replies['luci-rpc.getWirelessDevices'] = { radio0: { interfaces: [{ ifname: 'wlan0' }] } };
     const node = await renderPage(ctx);
     const tabs = node.querySelector('#dm-tabs-container').children;
-    assert.equal(tabs[0].textContent, 'All devices2'); assert.equal(tabs[1].textContent, 'Online devices1');
+    assert.equal(tabs[0].textContent, 'Online devices1'); assert.equal(tabs[1].textContent, 'All devices2');
     assert.ok(tabs.every(tab => tab.tag === 'button' && tab.attrs.role === 'tab'));
     ctx.page.activeGroup = 'home'; ctx.page.filterText = 'tv'; ctx.page.updateView();
-    assert.equal(node.querySelector('#dm-tabs-container').children[0].textContent, 'All devices1');
+    assert.equal(node.querySelector('#dm-tabs-container').children[0].textContent, 'Online devices0');
+    assert.equal(node.querySelector('#dm-tabs-container').children[1].textContent, 'All devices1');
 });
 
 test('a failed rollback must recover before a later operation can commit', async () => {
@@ -324,7 +325,7 @@ test('MAC-less failures on a different interface do not mark an ARP-known device
 test('switching a status tab preserves focus on the newly rendered tab', async () => {
     const ctx = pageContext([]); const node = await renderPage(ctx);
     await node.querySelector('#dm-tabs-container').children[1].click();
-    assert.equal(ctx.page.activeTab, 'online');
+    assert.equal(ctx.page.activeTab, 'all');
     assert.equal(node.querySelector('#dm-tabs-container').children[1].focused, true);
 });
 

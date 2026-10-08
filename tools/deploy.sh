@@ -158,8 +158,8 @@ if ! ssh "${SSH_OPTS[@]}" "${SSH_TARGET}" "echo 'OpenWrt connection OK'" >/dev/n
     exit 1
 fi
 
-if ! ssh "${SSH_OPTS[@]}" "${SSH_TARGET}" "command -v ip >/dev/null && test -r /usr/share/libubox/jshn.sh"; then
-    print_error "Router is missing ip or jshn. Install ip-tiny and jshn first."
+if ! ssh "${SSH_OPTS[@]}" "${SSH_TARGET}" "command -v ip >/dev/null && command -v flock >/dev/null && test -r /usr/share/libubox/jshn.sh"; then
+    print_error "Router is missing ip, flock or jshn. Install ip-tiny, flock and jshn first."
     exit 1
 fi
 

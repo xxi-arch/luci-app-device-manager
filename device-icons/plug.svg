@@ -1,18 +1,11 @@
 <svg
-  class="lucide lucide-plug"
+  class="mdi mdi-power-plug"
   xmlns="http://www.w3.org/2000/svg"
   width="24"
   height="24"
   viewBox="0 0 24 24"
-  fill="none"
-  stroke="currentColor"
-  stroke-width="2"
-  stroke-linecap="round"
-  stroke-linejoin="round"
+  fill="currentColor"
 >
   <style>:root{color:#374151;}@media(prefers-color-scheme:dark){:root{color:#e5e7eb;}}</style>
-  <path d="M12 22v-5" />
-  <path d="M15 8V2" />
-  <path d="M17 8a1 1 0 0 1 1 1v4a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1z" />
-  <path d="M9 8V2" />
+  <path d="M16,7V3H14V7H10V3H8V7H8C7,7 6,8 6,9V14.5L9.5,18V21H14.5V18L18,14.5V9C18,8 17,7 16,7Z" />
 </svg>

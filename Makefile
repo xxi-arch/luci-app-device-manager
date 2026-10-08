@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 LUCI_TITLE:=LuCI support for LAN Device Management
-LUCI_DEPENDS:=+luci-base +rpcd-mod-file +rpcd-mod-iwinfo +ip-tiny +jshn
+LUCI_DEPENDS:=+luci-base +rpcd-mod-file +rpcd-mod-iwinfo +ip-tiny +jshn +flock
 LUCI_PKGARCH:=all
 
 PKG_NAME:=luci-app-device-manager

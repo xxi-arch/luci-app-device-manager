@@ -38,8 +38,9 @@ test('Chinese page, status details, placeholders and dialogs work without a sepa
     const mac = 'AA:BB:CC:11:22:33';
     const ctx = context('auto', ['zh-CN'], [{ '.type': 'device', '.name': 'saved', mac, name: '客厅电视' }]);
     const node = await render(ctx);
-    assert.ok(node.textContent.includes('局域网设备管理'));
-    assert.ok(button(node, '刷新列表'));
+    assert.ok(button(node, '刷新'));
+    assert.ok(button(node, '添加设备'));
+    assert.ok(button(node, '隐藏信息'));
     assert.ok(node.querySelector('#dm-search-input').attrs.placeholder.startsWith('搜索'));
     assert.match(ctx.page.devices[0].statusDetail, /已保存记录/);
     ctx.page.showEditModal(ctx.page.devices[0]);
@@ -61,7 +62,7 @@ test('English page follows an explicit English setting even with Chinese browser
 test('language RPC failure falls back to the browser and does not prevent rendering', async () => {
     const ctx = context(new Error('method unavailable'), ['zh-CN']);
     const node = await render(ctx);
-    assert.ok(button(node, '刷新列表'));
+    assert.ok(button(node, '刷新'));
     assert.equal(ctx.mocks.state.commits, 0);
 });
 test('untouched default group names localize without modifying saved/custom names', async () => {

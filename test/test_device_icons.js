@@ -25,7 +25,7 @@ function pageContext(initial = []) {
 	return Object.assign({ env, page, model, service }, mocks);
 }
 
-test('all 24 Lucide icons are present in device-icons/ and web resource directories', () => {
+test('all 24 MDI device icons are present in device-icons/ and web resource directories', () => {
 	const dir1 = path.join(root, 'device-icons');
 	const dir2 = path.join(root, 'htdocs/luci-static/resources/device-manager/device-icons');
 
@@ -110,6 +110,10 @@ test('detectDeviceType refines classification using hostname or custom name clue
 test('device table renders the device icon in the first column', async () => {
 	const ctx = pageContext();
 	const nasMac = '00:11:32:11:22:33';
+	ctx.replies['luci.device-manager.get_online_status'] = {
+		ok: true,
+		neighbors: [{ mac: nasMac, state: 'REACHABLE' }]
+	};
 	ctx.replies['luci-rpc.getHostHints'] = {
 		[nasMac]: { name: 'Synology-NAS', ipaddrs: ['192.168.1.50'] }
 	};
@@ -143,6 +147,10 @@ test('custom device type override can be saved and displayed', async () => {
 		{ '.type': 'device', '.name': 'dev_001132556677', mac: customMac, name: 'Backup Server', type: 'server' }
 	];
 	const ctx = pageContext(initial);
+	ctx.replies['luci.device-manager.get_online_status'] = {
+		ok: true,
+		neighbors: [{ mac: customMac, state: 'REACHABLE' }]
+	};
 	const data = await ctx.page.load();
 	const viewNode = ctx.page.render(data);
 

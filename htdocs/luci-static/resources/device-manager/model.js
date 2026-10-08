@@ -424,6 +424,80 @@ function parseDevices(data, groups) {
 	});
 }
 
+function parseIpv4(ip) {
+	if (!ip || typeof ip !== 'string') return null;
+	const parts = ip.split('.').map(Number);
+	if (parts.length !== 4 || parts.some(n => isNaN(n) || n < 0 || n > 255)) return null;
+	return parts;
+}
+
+function sortDevices(devices, sortKey, sortDir, getGroupName) {
+	if (!sortKey || !Array.isArray(devices)) return devices || [];
+	const dir = (sortDir === 'desc') ? -1 : 1;
+	return devices.slice().sort((a, b) => {
+		if (sortKey === 'ip') {
+			const pa = parseIpv4(a.ipv4);
+			const pb = parseIpv4(b.ipv4);
+			// Devices with valid IPv4 always appear before devices without IPv4
+			if (Boolean(pa) !== Boolean(pb)) {
+				return pa ? -1 : 1;
+			}
+			if (pa && pb) {
+				for (let i = 0; i < 4; i++) {
+					if (pa[i] !== pb[i]) return (pa[i] - pb[i]) * dir;
+				}
+			}
+			// Both lack IPv4 (or identical IPv4): check IPv6
+			const v6a = a.ipv6 || '';
+			const v6b = b.ipv6 || '';
+			if (Boolean(v6a) !== Boolean(v6b)) {
+				return v6a ? -1 : 1;
+			}
+			if (v6a && v6b) {
+				const cmpV6 = v6a.localeCompare(v6b);
+				if (cmpV6 !== 0) return cmpV6 * dir;
+			}
+			// Tie-breaker: MAC
+			return (a.mac || '').localeCompare(b.mac || '') * dir;
+		}
+
+		if (sortKey === 'name') {
+			const nameA = a.customName || a.hostname || '';
+			const nameB = b.customName || b.hostname || '';
+			if (Boolean(nameA) !== Boolean(nameB)) return nameA ? -1 : 1;
+			if (nameA && nameB) {
+				const cmp = nameA.localeCompare(nameB);
+				if (cmp !== 0) return cmp * dir;
+			}
+			return (a.mac || '').localeCompare(b.mac || '') * dir;
+		}
+
+		if (sortKey === 'mac') {
+			return (a.mac || '').localeCompare(b.mac || '') * dir;
+		}
+
+		if (sortKey === 'group') {
+			const gA = (typeof getGroupName === 'function' ? getGroupName(a.group) : a.group) || '';
+			const gB = (typeof getGroupName === 'function' ? getGroupName(b.group) : b.group) || '';
+			if (Boolean(gA) !== Boolean(gB)) return gA ? -1 : 1;
+			if (gA && gB) {
+				const cmp = gA.localeCompare(gB);
+				if (cmp !== 0) return cmp * dir;
+			}
+			return (a.mac || '').localeCompare(b.mac || '') * dir;
+		}
+
+		if (sortKey === 'type') {
+			const tA = a.type || '';
+			const tB = b.type || '';
+			if (tA !== tB) return tA.localeCompare(tB) * dir;
+			return (a.mac || '').localeCompare(b.mac || '') * dir;
+		}
+
+		return 0;
+	});
+}
+
 return baseclass.extend({
 	DEVICE_TYPES: DEVICE_TYPES,
 	detectDeviceType: detectDeviceType,
@@ -436,6 +510,7 @@ return baseclass.extend({
 	groupName: groupName,
 	matchesDevice: matchesDevice,
 	parseDevices: parseDevices,
+	sortDevices: sortDevices,
 	parseGroups: sections => (sections || []).map(section => {
 		const id = section['.name'], name = sanitizeInput(section.name) || id;
 		const defaults = DEFAULT_GROUPS[id];

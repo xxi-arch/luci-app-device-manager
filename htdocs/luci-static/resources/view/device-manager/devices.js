@@ -12,10 +12,13 @@
 return view.extend({
 	devices: [],
 	groups: [],
-	activeTab: 'all',
+	activeTab: 'online',
 	activeGroup: 'all',
+	maskInfo: false,
 	filterText: '',
 	readonly: true,
+	sortKey: null,
+	sortDir: 'asc',
 	handleSave: null,
 	handleSaveApply: null,
 	handleReset: null,
@@ -31,7 +34,7 @@ return view.extend({
 		this.sourceErrors = data.errors || [];
 		if (this.activeGroup !== 'all' && this.activeGroup !== 'ungrouped' && !this.getGroupById(this.activeGroup)) {
 			this.activeGroup = 'all';
-			preferences.save(this.activeTab, this.activeGroup);
+			preferences.save(this.activeTab, this.activeGroup, this.maskInfo);
 		}
 	},
 
@@ -40,9 +43,65 @@ return view.extend({
 
 		this.readonly = L.hasViewPermission() !== true;
 		this.acceptData(data.snapshot);
-		const savedView = data.preferences;
-		this.activeTab = ['all', 'online', 'offline', 'unknown'].includes(savedView.tab) ? savedView.tab : 'all';
+		const savedView = data.preferences || {};
+		this.activeTab = ['all', 'online', 'offline', 'unknown'].includes(savedView.tab) ? savedView.tab : 'online';
 		this.activeGroup = (savedView.group === 'all' || savedView.group === 'ungrouped' || this.getGroupById(savedView.group)) ? savedView.group : 'all';
+		this.maskInfo = Boolean(savedView.maskInfo);
+
+		const theadNode = E('thead', {}, [ E('tr', { 'class': 'tr table-titles' }, [
+			E('th', {
+				'class': 'th dm-type-th dm-sortable',
+				'data-sort': 'type',
+				'title': (i18n.detectLanguage() === 'zh' ? '点击按设备类型排序' : 'Click to sort by device type'),
+				'style': 'width:56px; text-align:center;',
+				'click': function() { self.handleSort('type'); }
+			}, [
+				(i18n.detectLanguage() === 'zh' ? '类型' : 'Type'),
+				E('span', { 'class': 'dm-sort-icon' }, [ self.getSortIndicator('type') ])
+			]),
+			E('th', {
+				'class': 'th dm-sortable',
+				'data-sort': 'name',
+				'title': (i18n.detectLanguage() === 'zh' ? '点击按设备名称排序' : 'Click to sort by device name'),
+				'style': 'width:24%;',
+				'click': function() { self.handleSort('name'); }
+			}, [
+				i18n.t('Device name'),
+				E('span', { 'class': 'dm-sort-icon' }, [ self.getSortIndicator('name') ])
+			]),
+			E('th', {
+				'class': 'th dm-sortable',
+				'data-sort': 'ip',
+				'title': (i18n.detectLanguage() === 'zh' ? '点击按 IP 地址排序' : 'Click to sort by IP address'),
+				'style': 'width:18%;',
+				'click': function() { self.handleSort('ip'); }
+			}, [
+				i18n.t('IP address'),
+				E('span', { 'class': 'dm-sort-icon' }, [ self.getSortIndicator('ip') ])
+			]),
+			E('th', {
+				'class': 'th dm-sortable',
+				'data-sort': 'mac',
+				'title': (i18n.detectLanguage() === 'zh' ? '点击按 MAC 地址排序' : 'Click to sort by MAC address'),
+				'style': 'width:18%;',
+				'click': function() { self.handleSort('mac'); }
+			}, [
+				i18n.t('MAC address'),
+				E('span', { 'class': 'dm-sort-icon' }, [ self.getSortIndicator('mac') ])
+			]),
+			E('th', {
+				'class': 'th dm-sortable',
+				'data-sort': 'group',
+				'title': (i18n.detectLanguage() === 'zh' ? '点击按分组排序' : 'Click to sort by group'),
+				'style': 'width:14%;',
+				'click': function() { self.handleSort('group'); }
+			}, [
+				i18n.t('Group'),
+				E('span', { 'class': 'dm-sort-icon' }, [ self.getSortIndicator('group') ])
+			]),
+			E('th', { 'class': 'th', 'style': 'width:14%;' }, [ i18n.t('Remarks') ]),
+			E('th', { 'class': 'th cbi-section-actions', 'style': 'width:12%; text-align:center;' }, [ i18n.t('Actions') ])
+		]) ]);
 
 		const viewNode = E('div', { 'class': 'cbi-map' }, [
 			E('link', { 'rel': 'stylesheet', 'href': L.resource('device-manager/styles.css') }),
@@ -76,7 +135,7 @@ return view.extend({
 						'style': 'min-width:140px;',
 						'change': function(ev) {
 							self.activeGroup = ev.target.value;
-							preferences.save(self.activeTab, self.activeGroup);
+							preferences.save(self.activeTab, self.activeGroup, self.maskInfo);
 							self.updateView();
 						}
 					})
@@ -88,10 +147,20 @@ return view.extend({
 						'click': function() { self.showGroupModal(); }
 					}, [ i18n.t('Manage groups') ]),
 					E('button', { 'type': 'button',
-						'class': 'cbi-button cbi-button-action',
+						'class': 'cbi-button cbi-button-action dm-btn-blue',
 						'disabled': self.readonly || null,
 						'click': function() { self.showEditModal(null); }
-					}, [ i18n.t('+ Add device') ]),
+					}, [ ((i18n.language || i18n.detectLanguage()) === 'zh' ? '添加设备' : i18n.t('+ Add device')) ]),
+					E('button', { 'type': 'button',
+						'class': 'cbi-button cbi-button-neutral',
+						'id': 'dm-btn-mask',
+						'title': ((i18n.language || i18n.detectLanguage()) === 'zh' ? '隐藏/显示 MAC 与 IPv6 地址' : 'Hide/Show MAC and IPv6'),
+						'click': function() {
+							self.maskInfo = !self.maskInfo;
+							preferences.save(self.activeTab, self.activeGroup, self.maskInfo);
+							self.updateView();
+						}
+					}, [ ((i18n.language || i18n.detectLanguage()) === 'zh' ? (self.maskInfo ? '显示信息' : '隐藏信息') : (self.maskInfo ? 'Show info' : 'Hide info')) ]),
 					E('button', { 'type': 'button',
 						'class': 'cbi-button cbi-button-neutral',
 						'id': 'dm-btn-refresh',
@@ -104,33 +173,28 @@ return view.extend({
 								button.disabled = false;
 							});
 						}
-					}, [ i18n.t('Refresh list') ])
+					}, [ ((i18n.language || i18n.detectLanguage()) === 'zh' ? '刷新' : i18n.t('Refresh list')) ])
 				])
+				// Catalogue references: i18n.t('+ Add device'); i18n.t('Refresh list');
 			]),
 
 			// Row 3: Device Table
 			E('div', { 'class': 'cbi-section' }, [
 				E('div', { 'class': 'dm-table-wrapper' }, [
 					E('table', { 'class': 'table dm-table', 'id': 'device_manager_table' }, [
-						E('thead', {}, [ E('tr', { 'class': 'tr table-titles' }, [
-							E('th', { 'class': 'th dm-type-th', 'style': 'width:56px; text-align:center;' }, [ (i18n.detectLanguage() === 'zh' ? '类型' : 'Type') ]),
-							E('th', { 'class': 'th', 'style': 'width:24%;' }, [ i18n.t('Device name') ]),
-							E('th', { 'class': 'th', 'style': 'width:18%;' }, [ i18n.t('IP address') ]),
-							E('th', { 'class': 'th', 'style': 'width:18%;' }, [ i18n.t('MAC address') ]),
-							E('th', { 'class': 'th', 'style': 'width:14%;' }, [ i18n.t('Group') ]),
-							E('th', { 'class': 'th', 'style': 'width:14%;' }, [ i18n.t('Remarks') ]),
-							E('th', { 'class': 'th cbi-section-actions', 'style': 'width:12%; text-align:center;' }, [ i18n.t('Actions') ])
-						]) ]),
+						theadNode,
 						E('tbody', { 'id': 'device_manager_tbody' })
 					])
 				])
 			])
 		]);
 
+		this.tableHeadNode = theadNode;
 		this.warningNode = viewNode.querySelector('#dm-source-warning');
 		this.tabMenuNode = viewNode.querySelector('#dm-tabs-container');
 		this.tableBodyNode = viewNode.querySelector('#device_manager_tbody');
 		this.groupSelectNode = viewNode.querySelector('#dm-group-select');
+		this.maskBtnNode = viewNode.querySelector('#dm-btn-mask');
 
 		this.updateView();
 		return viewNode;
@@ -142,6 +206,9 @@ return view.extend({
 	renderGroupSelect: function() { return table.renderGroupSelect.call(this); },
 	renderTable: function() { return table.renderTable.call(this); },
 	renderDeviceRow: function(device) { return table.renderDeviceRow.call(this, device); },
+	handleSort: function(key) { return table.handleSort.call(this, key); },
+	getSortIndicator: function(key) { return table.getSortIndicator.call(this, key); },
+	updateSortHeaders: function() { return table.updateSortHeaders.call(this); },
 	showEditModal: function(device) { return deviceDialog.showEditModal.call(this, device); },
 	confirmDelete: function(device) { return deviceDialog.confirmDelete.call(this, device); },
 	showGroupModal: function() { return groupDialog.showGroupModal.call(this); },
@@ -156,6 +223,13 @@ return view.extend({
 	updateView: function() {
 		this.renderTabs();
 		this.renderGroupSelect();
+		this.updateSortHeaders();
+		if (this.maskBtnNode) {
+			const isZh = (i18n.language || i18n.detectLanguage()) === 'zh';
+			this.maskBtnNode.textContent = isZh
+				? (this.maskInfo ? '显示信息' : '隐藏信息')
+				: (this.maskInfo ? 'Show info' : 'Hide info');
+		}
 		this.renderTable();
 		if (this.warningNode) {
 			this.warningNode.textContent = this.sourceErrors.length

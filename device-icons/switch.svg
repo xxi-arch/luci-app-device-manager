@@ -1,19 +1,11 @@
 <svg
-  class="lucide lucide-ethernet-port"
+  class="mdi mdi-ethernet"
   xmlns="http://www.w3.org/2000/svg"
   width="24"
   height="24"
   viewBox="0 0 24 24"
-  fill="none"
-  stroke="currentColor"
-  stroke-width="2"
-  stroke-linecap="round"
-  stroke-linejoin="round"
+  fill="currentColor"
 >
   <style>:root{color:#374151;}@media(prefers-color-scheme:dark){:root{color:#e5e7eb;}}</style>
-  <path d="M10 8v1" />
-  <path d="M14 8v1" />
-  <path d="M18 8v1" />
-  <path d="M19 17a2 2 0 00-1.765 1.059l-.47.882A2 2 0 0115 20H9a2 2 0 01-1.765-1.059l-.47-.882A2 2 0 005 17H4a2 2 0 01-2-2V6a2 2 0 012-2h16a2 2 0 012 2v9a2 2 0 01-2 2z" />
-  <path d="M6 8v1" />
+  <path d="M7,15H9V18H11V15H13V18H15V15H17V18H19V9H15V6H9V9H5V18H7V15M4.38,3H19.63C20.94,3 22,4.06 22,5.38V19.63A2.37,2.37 0 0,1 19.63,22H4.38C3.06,22 2,20.94 2,19.63V5.38C2,4.06 3.06,3 4.38,3Z" />
 </svg>

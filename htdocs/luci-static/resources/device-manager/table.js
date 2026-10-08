@@ -19,8 +19,8 @@ return baseclass.extend({
 		const unknown = total - online - offline;
 
 		const tabs = [
-			{ key: 'all',     label: i18n.t('All devices'), count: total },
 			{ key: 'online',  label: i18n.t('Online devices'), count: online },
+			{ key: 'all',     label: i18n.t('All devices'), count: total },
 			{ key: 'offline', label: i18n.t('Offline devices'), count: offline },
 			{ key: 'unknown', label: i18n.t('Unknown'), count: unknown }
 		];
@@ -35,7 +35,7 @@ return baseclass.extend({
 				'class': 'dm-status-tab' + (isActive ? ' active' : ''),
 				'click': function() {
 					self.activeTab = t.key;
-					preferences.save(self.activeTab, self.activeGroup);
+					preferences.save(self.activeTab, self.activeGroup, self.maskInfo);
 					self.updateView();
 					const current = Array.from(self.tabMenuNode.children).find(node => node.getAttribute('data-tab') === t.key);
 					if (current) current.focus();
@@ -85,6 +85,53 @@ return baseclass.extend({
 		dom.content(this.groupSelectNode, options);
 	},
 
+	handleSort: function(key) {
+		if (this.sortKey === key) {
+			this.sortDir = (this.sortDir === 'asc') ? 'desc' : 'asc';
+		} else {
+			this.sortKey = key;
+			this.sortDir = 'asc';
+		}
+		this.updateSortHeaders();
+		this.renderTable();
+	},
+
+	getSortIndicator: function(key) {
+		if (this.sortKey !== key) return ' ↕';
+		return this.sortDir === 'asc' ? ' ▲' : ' ▼';
+	},
+
+	updateSortHeaders: function() {
+		if (!this.tableHeadNode) return;
+		const ths = this.tableHeadNode.querySelectorAll('th');
+		for (let i = 0; i < ths.length; i++) {
+			const th = ths[i];
+			const col = th.getAttribute('data-sort');
+			if (!col) continue;
+			const isCurrent = (col === this.sortKey);
+			th.classList.remove('sorted-asc');
+			th.classList.remove('sorted-desc');
+			if (isCurrent) {
+				th.classList.add(this.sortDir === 'asc' ? 'sorted-asc' : 'sorted-desc');
+				if (typeof th.setAttribute === 'function') {
+					th.setAttribute('aria-sort', this.sortDir === 'asc' ? 'ascending' : 'descending');
+				} else if (th.attrs) {
+					th.attrs['aria-sort'] = this.sortDir === 'asc' ? 'ascending' : 'descending';
+				}
+			} else {
+				if (typeof th.setAttribute === 'function') {
+					th.setAttribute('aria-sort', 'none');
+				} else if (th.attrs) {
+					th.attrs['aria-sort'] = 'none';
+				}
+			}
+			const iconSpan = th.querySelector('.dm-sort-icon');
+			if (iconSpan) {
+				iconSpan.textContent = this.getSortIndicator(col);
+			}
+		}
+	},
+
 	renderTable: function() {
 		if (!this.tableBodyNode) return;
 		dom.content(this.tableBodyNode, null);
@@ -112,8 +159,10 @@ return baseclass.extend({
 			return;
 		}
 
-		for (let i = 0; i < filtered.length; i++) {
-			this.tableBodyNode.appendChild(this.renderDeviceRow(filtered[i]));
+		const sorted = model.sortDevices(filtered, this.sortKey, this.sortDir, id => this.getGroupName(id));
+
+		for (let i = 0; i < sorted.length; i++) {
+			this.tableBodyNode.appendChild(this.renderDeviceRow(sorted[i]));
 		}
 	},
 
@@ -137,37 +186,35 @@ return baseclass.extend({
 
 		// 1. Device name column
 		const displayName = dev.customName || dev.hostname || i18n.t('Unknown device');
-		const nameChildren = [
-			E('div', { 'class': 'dm-device-title' }, [ displayName ])
-		];
 
-		// Status badge with tooltip explanation
-		let badgeClass = 'dm-badge-unknown';
-		let badgeText = i18n.t('Unknown');
+		// Status dot with tooltip explanation (no text displayed)
+		let dotClass = 'dm-status-dot-unknown';
+		let statusLabel = i18n.t('Unknown');
 
 		if (dev.status === 'online') {
-			badgeClass = 'dm-badge-online';
-			badgeText = i18n.t('Online');
+			dotClass = 'dm-status-dot-online';
+			statusLabel = i18n.t('Online');
 		} else if (dev.status === 'offline') {
-			badgeClass = 'dm-badge-offline';
-			badgeText = i18n.t('Offline');
+			dotClass = 'dm-status-dot-offline';
+			statusLabel = i18n.t('Offline');
 		}
 
-		nameChildren.push(E('div', {}, [
-			E('span', {
-				'class': 'dm-badge ' + badgeClass,
-				'title': dev.statusDetail || badgeText
-			}, [ badgeText ])
-		]));
+		const statusTooltip = dev.statusDetail ? (statusLabel + ': ' + dev.statusDetail) : statusLabel;
+
+		const nameChildren = [
+			E('div', { 'class': 'dm-device-title-row' }, [
+				E('span', {
+					'class': 'dm-status-dot ' + dotClass,
+					'title': statusTooltip
+				}),
+				E('span', { 'class': 'dm-device-title' }, [ displayName ])
+			])
+		];
 
 		if (dev.customName && dev.hostname && dev.customName !== dev.hostname) {
-			nameChildren.push(E('div', { 'class': 'dm-device-subtitle' }, [
-				i18n.t('Hostname: '),
-				E('span', {}, [ dev.hostname ])
-			]));
-		} else if (!dev.customName && !dev.hostname) {
-			nameChildren.push(E('div', { 'class': 'dm-device-subtitle' }, [ i18n.t('No hostname detected') ]));
+			nameChildren.push(E('div', { 'class': 'dm-device-subtitle' }, [ dev.hostname ]));
 		}
+		// Catalogue references: i18n.t('Hostname: '); i18n.t('No hostname detected');
 
 		// 2. IP address column
 		const ipChildren = [];
@@ -177,26 +224,28 @@ return baseclass.extend({
 			ipChildren.push(E('div', { 'style': 'color:#999;' }, [ '—' ]));
 		}
 		if (dev.ipv6) {
+			const displayIpv6 = (this.maskInfo && dev.ipv6) ? dev.ipv6.replace(/[0-9a-fA-F]/g, '*') : dev.ipv6;
 			ipChildren.push(E('div', {
 				'class': 'dm-device-subtitle',
-				'title': dev.ipv6,
+				'title': displayIpv6,
 				'style': 'max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;'
-			}, [ dev.ipv6 ]));
+			}, [ displayIpv6 ]));
 		}
 
 		// 3. MAC address column
-		const macNode = E('span', { 'class': 'dm-mac-code' }, [ dev.mac ]);
+		const displayMac = (this.maskInfo && dev.mac) ? dev.mac.replace(/[0-9a-fA-F]/g, '*') : dev.mac;
+		const macNode = E('span', { 'class': 'dm-mac-code' }, [ displayMac ]);
 
 		// 4. Group column
 		const groupName = this.getGroupName(dev.group);
 		const groupNode = (dev.group && dev.group !== 'ungrouped')
 			? E('span', { 'class': 'dm-group-badge' }, [ groupName ])
-			: E('span', { 'class': 'dm-group-ungrouped' }, [ i18n.t('Ungrouped') ]);
+			: null;
 
 		// 5. Remark column
 		const remarkNode = dev.remark
 			? E('span', {}, [ dev.remark ])
-			: E('em', { 'style': 'color:#aaa;' }, [ '—' ]);
+			: null;
 
 		// 6. Action column
 		const actions = self.readonly ? [ E('em', {}, [ i18n.t('Read-only') ]) ] : [
