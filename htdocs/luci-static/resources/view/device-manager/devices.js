@@ -141,10 +141,15 @@ function getWifiAssocList() {
  * Read /proc/net/arp as fallback for ARP entry information.
  */
 function getArpTable() {
-	return fs.read_file('/proc/net/arp').then(function(content) {
+	const readFn = (fs && (fs.read || fs.read_file));
+	if (typeof readFn !== 'function')
+		return Promise.resolve([]);
+
+	return readFn.call(fs, '/proc/net/arp').then(function(content) {
 		const entries = [];
-		if (!content) return entries;
-		const lines = content.trim().split('\n');
+		const raw = (typeof content === 'string') ? content : (content && content.data ? content.data : '');
+		if (!raw) return entries;
+		const lines = raw.trim().split('\n');
 		for (let i = 1; i < lines.length; i++) {
 			const parts = lines[i].trim().split(/\s+/);
 			if (parts.length >= 6) {
