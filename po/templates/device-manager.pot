@@ -1,0 +1,11 @@
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "Device Manager"
+msgstr ""
+
+msgid "LAN Device Management"
+msgstr ""
+
+msgid "Manage local network devices, set custom device names and remarks."
+msgstr ""

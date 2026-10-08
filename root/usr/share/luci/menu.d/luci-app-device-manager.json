@@ -1,0 +1,13 @@
+{
+	"admin/network/device-manager": {
+		"title": "设备管理",
+		"order": 60,
+		"action": {
+			"type": "view",
+			"path": "device-manager/devices"
+		},
+		"depends": {
+			"acl": [ "luci-app-device-manager" ]
+		}
+	}
+}

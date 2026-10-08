@@ -1,0 +1,17 @@
+{
+	"luci-app-device-manager": {
+		"description": "Grant access to LAN device manager",
+		"read": {
+			"ubus": {
+				"luci-rpc": [ "getHostHints", "getDHCPLeases", "getNetworkDevices" ]
+			},
+			"uci": [ "device_manager" ]
+		},
+		"write": {
+			"ubus": {
+				"uci": [ "add", "set", "delete", "order", "commit", "apply", "confirm" ]
+			},
+			"uci": [ "device_manager" ]
+		}
+	}
+}
