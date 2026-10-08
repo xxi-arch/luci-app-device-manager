@@ -1,35 +1,54 @@
 #!/bin/sh
 
-case "$1" in
-	list)
-		echo '{ "get_online_status": {} }'
+case "$1:$2" in
+	list:*)
+		printf '{"get_online_status":{},"get_language":{}}\n'
 		;;
-	call)
-		case "$2" in
-			get_online_status)
-				printf '{"neighbors":['
-				first=1
-				ip neigh show 2>/dev/null | while read -r ip rest; do
-					mac=""
-					state=""
-					dev=""
-					prev=""
-					for word in $rest; do
-						if [ "$prev" = "dev" ]; then
-							dev="$word"
-						elif [ "$prev" = "lladdr" ]; then
-							mac="$word"
-						fi
-						state="$word"
-						prev="$word"
-					done
-					[ -z "$mac" ] && continue
-					[ "$first" -eq 1 ] && first=0 || printf ','
-					printf '{"ip":"%s","mac":"%s","dev":"%s","state":"%s"}' "$ip" "$mac" "$dev" "$state"
-				done
-				printf ']}\n'
-				;;
-		esac
+	call:get_language)
+		. /usr/share/libubox/jshn.sh
+		json_init
+		json_add_string language "$(uci -q get luci.main.lang 2>/dev/null || printf auto)"
+		json_dump
 		;;
+	call:get_online_status)
+		. /usr/share/libubox/jshn.sh
+		json_init
+		if ! neighbors="$(ip neigh show 2>/dev/null)"; then
+			json_add_boolean ok 0
+			json_add_string error 'Unable to read the kernel neighbor table'
+			json_dump
+			exit 0
+		fi
+		json_add_boolean ok 1
+		json_add_array neighbors
+		# A here document keeps parsing in this shell. jshn escapes all JSON strings.
+		while read -r address rest; do
+			[ -n "$address" ] || continue
+			mac=""; state=""; device=""; previous=""
+			set -f
+			for word in $rest; do
+				case "$previous" in
+					dev) device="$word" ;;
+					lladdr) mac="$word" ;;
+				esac
+				case "$word" in
+					REACHABLE|DELAY|PROBE|STALE|FAILED|INCOMPLETE|PERMANENT|NOARP|NONE) state="$word" ;;
+				esac
+				previous="$word"
+			done
+			[ -n "$device" ] || continue
+			# FAILED and INCOMPLETE commonly have no lladdr. Preserve their IP/state.
+			json_add_object ''
+			json_add_string ip "$address"
+			json_add_string mac "$mac"
+			json_add_string dev "$device"
+			json_add_string state "$state"
+			json_close_object
+		done <<EOF
+$neighbors
+EOF
+		json_close_array
+		json_dump
+		;;
+	*) exit 1 ;;
 esac
-

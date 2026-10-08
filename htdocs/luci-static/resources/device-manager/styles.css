@@ -1,0 +1,24 @@
+.dm-status-tabs { display:flex; flex-wrap:wrap; margin:0 0 16px 0; padding:0; border-bottom:2px solid #e0e0e0; list-style:none; gap:6px; }
+.dm-status-tab { border:0; font-family:inherit; cursor:pointer; padding:8px 16px; border-radius:6px 6px 0 0; font-weight:500; font-size:14px; color:inherit; background:rgba(0,0,0,0.03); transition:all 0.15s ease; border-bottom:3px solid transparent; }
+.dm-status-tab:hover { background:rgba(0,0,0,0.06); color:inherit; }
+.dm-status-tab.active { background:transparent; color:#1a73e8; font-weight:bold; border-bottom:3px solid #1a73e8; }
+.dm-tab-count { font-size:12px; margin-left:4px; padding:2px 7px; border-radius:10px; background:rgba(0,0,0,0.06); color:inherit; font-weight:normal; }
+.dm-status-tab.active .dm-tab-count { background:#e8f0fe; color:#1a73e8; font-weight:bold; }
+.dm-toolbar { display:flex; flex-wrap:wrap; gap:10px; justify-content:space-between; align-items:center; margin-bottom:15px; }
+.dm-controls { display:flex; flex-wrap:wrap; gap:8px; align-items:center; flex:1; min-width:260px; }
+.dm-btn-group { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.dm-table-wrapper { overflow-x:auto; width:100%; -webkit-overflow-scrolling:touch; }
+.dm-device-title { font-weight:bold; font-size:14px; display:inline-block; }
+.dm-device-subtitle { font-size:12px; color:#777; margin-top:2px; }
+.dm-badge { display:inline-block; font-size:11px; padding:2px 6px; border-radius:3px; margin-top:3px; font-weight:500; }
+.dm-badge-online { background:#e6f4ea; color:#137333; border:1px solid #ceead6; }
+.dm-badge-offline { background:#fce8e6; color:#c5221f; border:1px solid #fad2cf; }
+.dm-badge-unknown { background:#fef7e0; color:#b06000; border:1px solid #feefc3; }
+.dm-group-badge { display:inline-block; font-size:12px; padding:3px 8px; border-radius:4px; background:#f1f3f4; color:#3c4043; border:1px solid #dadce0; font-weight:500; }
+.dm-group-ungrouped { color:#888; font-style:italic; }
+.dm-mac-code { font-family:monospace; font-size:13px; font-weight:600; color:#1a73e8; }
+.dm-actions { white-space:nowrap; }
+.dm-actions button { margin-right:5px; }
+
+.dm-status-tab:focus-visible { outline:2px solid #1a73e8; outline-offset:2px; }
+.dm-source-warning { overflow-wrap:anywhere; }

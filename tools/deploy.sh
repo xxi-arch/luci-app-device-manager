@@ -29,10 +29,6 @@ print_success() {
     printf "${GREEN}[SUCCESS]${NC} %s\n" "$1"
 }
 
-print_warn() {
-    printf "${YELLOW}[WARN]${NC} %s\n" "$1"
-}
-
 print_error() {
     printf "${RED}[ERROR]${NC} %s\n" "$1" >&2
 }
@@ -62,6 +58,10 @@ TARGET=""
 while [[ $# -gt 0 ]]; do
     case "$1" in
         -p|--port)
+            if [[ $# -lt 2 || ! "$2" =~ ^[0-9]+$ || ${#2} -gt 5 ]] || (( 10#$2 < 1 || 10#$2 > 65535 )); then
+                print_error "SSH port must be an integer between 1 and 65535."
+                exit 1
+            fi
             SSH_PORT="$2"
             shift 2
             ;;
@@ -103,7 +103,7 @@ else
 fi
 
 # Check prerequisites
-for cmd in ssh scp tar; do
+for cmd in ssh scp; do
     if ! command -v "$cmd" &>/dev/null; then
         print_error "Required local command '$cmd' is not found in PATH."
         exit 1
@@ -130,6 +130,23 @@ if [[ ! -f "${PROJECT_ROOT}/root/usr/share/rpcd/acl.d/luci-app-device-manager.js
     exit 1
 fi
 
+for resource in model.js service.js preferences.js table.js device-dialog.js group-dialog.js i18n.js translations.js styles.css; do
+    if [[ ! -f "${PROJECT_ROOT}/htdocs/luci-static/resources/device-manager/${resource}" ]]; then
+        print_error "Missing frontend resource: device-manager/${resource}"
+        exit 1
+    fi
+done
+
+if [[ ! -f "${PROJECT_ROOT}/root/usr/libexec/rpcd/luci.device-manager" || ! -f "${PROJECT_ROOT}/root/etc/uci-defaults/80_device_manager" ]]; then
+    print_error "Missing rpcd helper or configuration initializer."
+    exit 1
+fi
+
+if [[ ! -f "${PROJECT_ROOT}/root/usr/lib/lua/luci/i18n/device-manager-builtin.zh-cn.lmo" || ! -f "${PROJECT_ROOT}/root/etc/uci-defaults/81_device_manager_i18n" ]]; then
+    print_error "Missing bundled Chinese translations or language initializer."
+    exit 1
+fi
+
 SSH_OPTS=(-p "${SSH_PORT}" -o BatchMode=no -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new)
 SCP_OPTS=(-P "${SSH_PORT}" -o BatchMode=no -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new)
 
@@ -141,16 +158,27 @@ if ! ssh "${SSH_OPTS[@]}" "${SSH_TARGET}" "echo 'OpenWrt connection OK'" >/dev/n
     exit 1
 fi
 
+if ! ssh "${SSH_OPTS[@]}" "${SSH_TARGET}" "command -v ip >/dev/null && test -r /usr/share/libubox/jshn.sh"; then
+    print_error "Router is missing ip or jshn. Install ip-tiny and jshn first."
+    exit 1
+fi
+
 print_info "Connection verified. Preparing remote directories..."
 
 ssh "${SSH_OPTS[@]}" "${SSH_TARGET}" "
     mkdir -p /www/luci-static/resources/view/device-manager \
              /usr/share/luci/menu.d \
              /usr/share/rpcd/acl.d \
+             /usr/lib/lua/luci/i18n \
              /usr/libexec/rpcd \
              /etc/uci-defaults \
              /etc/config
 "
+
+print_info "Deploying shared frontend modules and stylesheet..."
+scp "${SCP_OPTS[@]}" -r \
+    "${PROJECT_ROOT}/htdocs/luci-static/resources/device-manager" \
+    "${SSH_TARGET}:/www/luci-static/resources/"
 
 print_info "Deploying frontend view (devices.js)..."
 scp "${SCP_OPTS[@]}" \
@@ -165,6 +193,19 @@ scp "${SCP_OPTS[@]}" \
 scp "${SCP_OPTS[@]}" \
     "${PROJECT_ROOT}/root/usr/share/rpcd/acl.d/luci-app-device-manager.json" \
     "${SSH_TARGET}:/usr/share/rpcd/acl.d/luci-app-device-manager.json"
+
+print_info "Deploying bundled Chinese translations..."
+scp "${SCP_OPTS[@]}" \
+    "${PROJECT_ROOT}/root/usr/lib/lua/luci/i18n/device-manager-builtin.zh-cn.lmo" \
+    "${SSH_TARGET}:/usr/lib/lua/luci/i18n/device-manager-builtin.zh-cn.lmo"
+scp "${SCP_OPTS[@]}" \
+    "${PROJECT_ROOT}/root/etc/uci-defaults/81_device_manager_i18n" \
+    "${SSH_TARGET}:/etc/uci-defaults/81_device_manager_i18n"
+ssh "${SSH_OPTS[@]}" "${SSH_TARGET}" "
+    set -e
+    sh /etc/uci-defaults/81_device_manager_i18n
+    rm -f /etc/uci-defaults/81_device_manager_i18n
+"
 
 if [[ -f "${PROJECT_ROOT}/root/usr/libexec/rpcd/luci.device-manager" ]]; then
     print_info "Deploying rpcd helper backend script..."
@@ -183,15 +224,16 @@ fi
 
 print_info "Ensuring configuration persistence (protecting existing user remarks)..."
 ssh "${SSH_OPTS[@]}" "${SSH_TARGET}" "
+    set -e
     if [ ! -f /etc/config/device_manager ]; then
-        touch /etc/config/device_manager
-        echo 'Initialized empty /etc/config/device_manager'
+        echo 'Initializing default /etc/config/device_manager'
     else
         echo 'Existing /etc/config/device_manager preserved.'
     fi
     if [ -f /etc/uci-defaults/80_device_manager ]; then
         chmod +x /etc/uci-defaults/80_device_manager
         /etc/uci-defaults/80_device_manager
+        rm -f /etc/uci-defaults/80_device_manager
     fi
 "
 
@@ -212,5 +254,3 @@ printf "\n"
 printf "  ${YELLOW}Note:${NC} If you are already logged in, please refresh the page\n"
 printf "  with ${CYAN}Ctrl + Shift + R${NC} to clear browser JavaScript cache.\n"
 printf "${CYAN}================================================================${NC}\n"
-EOF
-

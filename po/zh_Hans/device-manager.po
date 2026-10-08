@@ -1,12 +1,363 @@
 msgid ""
-msgstr "Content-Type: text/plain; charset=UTF-8\n"
+msgstr ""
+"Project-Id-Version: luci-app-device-manager\n"
+"PO-Revision-Date: 2026-10-08 00:00+0800\n"
+"Last-Translator: luci-app-device-manager contributors\n"
+"Language-Team: Chinese (Simplified)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: zh_Hans\n"
+
+#, c-format
+msgid "%d devices"
+msgstr "%d 台设备"
+
+#, c-format
+msgid "%s; failed to discard pending changes: %s"
+msgstr "%s；清理待提交配置失败：%s"
+
+msgid "+ Add device"
+msgstr "+ 手动添加设备"
+
+msgid "A conflicting configuration record exists"
+msgstr "存在冲突的配置记录"
+
+msgid "A group with this name already exists"
+msgstr "已存在同名分组，请使用其他名称"
+
+msgid "ARP record exists without recent activity evidence"
+msgstr "存在 ARP 记录，缺少近期活动证据"
+
+msgid "Actions"
+msgstr "操作"
+
+msgid "Active Wi-Fi association"
+msgstr "Wi-Fi 活跃连接"
+
+#, c-format
+msgid "Active network neighbor (%s)"
+msgstr "网络邻居活跃 (%s)"
+
+msgid "Add device"
+msgstr "手动添加设备"
+
+msgid "Add group"
+msgstr "添加分组"
+
+msgid "All devices"
+msgstr "全部设备"
+
+msgid "All groups"
+msgstr "全部分组"
+
+msgid "Cancel"
+msgstr "取消"
+
+msgid "Close"
+msgstr "关闭"
+
+msgid "Confirm delete"
+msgstr "确认删除"
+
+#, c-format
+msgid "Could not create group: %s"
+msgstr "创建分组失败: %s"
+
+#, c-format
+msgid "Could not delete group: %s"
+msgstr "删除分组失败: %s"
+
+#, c-format
+msgid "Could not refresh the device list: %s"
+msgstr "刷新设备列表失败：%s"
+
+msgid "Current IP address"
+msgstr "当前 IP 地址"
+
+msgid "Current group name"
+msgstr "原分组名称"
+
+msgid "Current status"
+msgstr "当前在线状态"
+
+msgid "Custom name"
+msgstr "设备显示名称"
+
+msgid "Delete"
+msgstr "删除"
+
+#, c-format
+msgid "Delete failed: %s"
+msgstr "删除失败: %s"
+
+msgid "Delete group"
+msgstr "确认删除分组"
+
+#, c-format
+msgid "Delete group \"%s\"?"
+msgstr "确定要删除分组【%s】吗？"
+
+msgid "Delete record"
+msgstr "确认删除记录"
+
+#, c-format
+msgid "Delete the saved record for \"%s\" (%s)?"
+msgstr "确定要删除设备【%s】(%s) 的自定义名称和备注记录吗？"
+
+#, c-format
+msgid "Device \"%s\" saved."
+msgstr "设备【%s】信息已保存并生效！"
 
 msgid "Device Manager"
 msgstr "设备管理"
 
+msgid "Device count"
+msgstr "包含设备数"
+
+msgid "Device group"
+msgstr "所属分组"
+
+msgid "Device groups"
+msgstr "设备分组管理"
+
+msgid "Device name"
+msgstr "设备名称"
+
+msgid "Device remarks"
+msgstr "设备备注"
+
+msgid "Device status"
+msgstr "设备状态"
+
+msgid "Discover network devices and save custom names, remarks and groups by MAC address."
+msgstr "自动识别局域网设备在线状态，支持按 MAC 地址自定义显示名称、备注和自定义设备分组，配置永久保存。"
+
+msgid "Edit"
+msgstr "编辑"
+
+msgid "Edit device"
+msgstr "编辑设备"
+
+msgid "Enter a valid MAC address"
+msgstr "请输入有效的 MAC 地址"
+
+msgid "Enter a valid MAC address (e.g. AA:BB:CC:11:22:33)"
+msgstr "请输入有效的 MAC 地址（格式如：AA:BB:CC:11:22:33）"
+
+msgid "Enter a valid group name"
+msgstr "请输入有效的分组名称"
+
+msgid "Group"
+msgstr "分组"
+
+#, c-format
+msgid "Group \"%s\" created."
+msgstr "成功创建分组【%s】！"
+
+#, c-format
+msgid "Group \"%s\" deleted. Its devices are now ungrouped."
+msgstr "分组【%s】已删除，所属设备已转为未分组。"
+
+msgid "Group ID"
+msgstr "分组标识"
+
+msgid "Group name"
+msgstr "分组名称"
+
+msgid "Group names support Unicode text and common symbols"
+msgstr "分组名称支持中文、英文及常用符号，稳定保存"
+
+#, c-format
+msgid "Group renamed to \"%s\"."
+msgstr "分组已成功重命名为【%s】！"
+
+msgid "Hardware address; colon or hyphen separators are accepted"
+msgstr "设备的物理硬件地址，支持冒号或短横线分隔（不区分大小写）"
+
+msgid "Hostname: "
+msgstr "主机名: "
+
+msgid "IP address"
+msgstr "IP 地址"
+
+msgid "Input is too long"
+msgstr "输入内容超出长度限制"
+
+msgid "Invalid discovery response"
+msgstr "设备发现接口返回无效数据"
+
+msgid "Known device without recent activity evidence"
+msgstr "已知设备，缺少近期活动证据"
+
 msgid "LAN Device Management"
 msgstr "局域网设备管理"
 
-msgid "Manage local network devices, set custom device names and remarks."
-msgstr "管理局域网中的已知设备，支持自定义设备名称与备注信息。"
+msgid "Leave empty to display the default hostname"
+msgstr "自定义设备显示名称。若留空则恢复默认主机名"
 
+msgid "MAC address"
+msgstr "MAC 地址"
+
+msgid "Manage groups"
+msgstr "分组管理"
+
+msgid "Network neighbor probe failed (FAILED)"
+msgstr "网络邻居探测失败 (FAILED)"
+
+msgid "New group"
+msgstr "新增分组"
+
+msgid "New group name"
+msgstr "新分组名称"
+
+msgid "No devices found. Refresh the list to try again."
+msgstr "暂无局域网设备数据，点击右上角【刷新】重试或【+ 手动添加设备】"
+
+msgid "No devices in this group"
+msgstr "当前分组下暂无设备记录"
+
+#, c-format
+msgid "No devices match \"%s\""
+msgstr "未找到与 “%s” 匹配的设备记录"
+
+msgid "No devices with unknown status"
+msgstr "当前没有状态未知的设备"
+
+msgid "No hostname detected"
+msgstr "无检测主机名"
+
+msgid "No offline devices"
+msgstr "当前没有离线设备"
+
+msgid "No online devices"
+msgstr "当前没有在线设备"
+
+#, c-format
+msgid "No recent activity confirmed (%s)"
+msgstr "无法确认近期活动 (%s)"
+
+msgid "Not detected"
+msgstr "未检测到"
+
+msgid "Offline"
+msgstr "离线"
+
+msgid "Offline devices"
+msgstr "离线设备"
+
+msgid "Online"
+msgstr "在线"
+
+msgid "Online devices"
+msgstr "在线设备"
+
+msgid "Organize this device by purpose or location"
+msgstr "为设备指定业务或摆放区域分类"
+
+msgid "Read-only"
+msgstr "只读"
+
+msgid "Read-only access"
+msgstr "仅有只读权限"
+
+msgid "Record the location, purpose or owner of this device"
+msgstr "记录设备位置、用途、所有者等备注信息"
+
+msgid "Refresh list"
+msgstr "刷新列表"
+
+msgid "Remarks"
+msgstr "备注"
+
+msgid "Rename"
+msgstr "重命名"
+
+#, c-format
+msgid "Rename failed: %s"
+msgstr "重命名失败: %s"
+
+msgid "Rename group"
+msgstr "重命名分组"
+
+msgid "Renaming preserves the group ID and all device assignments"
+msgstr "重命名不会改变分组 ID，已关联该分组的设备保持关联不变"
+
+msgid "Save"
+msgstr "保存"
+
+msgid "Save changes"
+msgstr "保存修改"
+
+#, c-format
+msgid "Save failed: %s"
+msgstr "保存失败: %s"
+
+msgid "Saved device not found in the current network"
+msgstr "未在当前网络发现（已保存记录）"
+
+#, c-format
+msgid "Saved record for \"%s\" deleted."
+msgstr "已成功删除设备【%s】的备注记录。"
+
+msgid "Search names, IP, MAC, remarks or groups..."
+msgstr "搜索设备名称、主机名、IP、MAC、备注、分组..."
+
+#, c-format
+msgid "Some device data could not be read. Unconfirmed devices are shown as unknown: %s"
+msgstr "部分设备数据读取失败，无法确认的设备显示为状态未知：%s"
+
+msgid "Some discovery sources are unavailable"
+msgstr "部分设备发现数据源不可用"
+
+msgid "System hostname"
+msgstr "系统主机名"
+
+#, c-format
+msgid "The %d devices in this group will become ungrouped. Their names, MAC addresses and remarks will be preserved."
+msgstr "删除分组后，该组下的 %d 台设备将自动转为【未分组】。设备名称、MAC 及备注将被完整保留，绝不删除设备。"
+
+msgid "The default hostname will be displayed. The saved record, remarks and group assignment will be removed."
+msgstr "删除后将恢复显示默认主机名，已保存的备注和分组将被清空。"
+
+msgid "This group no longer exists"
+msgstr "该分组已不存在"
+
+msgid "Unavailable"
+msgstr "未获取"
+
+msgid "Ungrouped"
+msgstr "未分组"
+
+msgid "Unknown"
+msgstr "状态未知"
+
+msgid "Unknown device"
+msgstr "未知设备"
+
+msgid "e.g. AA:BB:CC:11:22:33"
+msgstr "例如：AA:BB:CC:11:22:33"
+
+msgid "e.g. Living room TV"
+msgstr "例如：55寸安卓电视，安装在客厅"
+
+msgid "e.g. Living room TV, work computer"
+msgstr "例如：客厅电视、主力工作电脑"
+
+msgid "e.g. Media devices, office devices"
+msgstr "例如：智能影音、办公设备"
+
+msgid "Smart home"
+msgstr "智能家居"
+
+msgid "Phones"
+msgstr "手机设备"
+
+msgid "Computers"
+msgstr "电脑设备"
+
+msgid "Network devices"
+msgstr "网络设备"
+
+msgid "Other devices"
+msgstr "其他设备"

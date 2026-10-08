@@ -1,30 +1,23 @@
 #!/bin/sh
+set -e
 
-if [ ! -f /etc/config/device_manager ]; then
-	touch /etc/config/device_manager
-fi
+# Existing configuration, including an intentionally empty file, is authoritative.
+# Packaged installations already ship the defaults in /etc/config/device_manager.
+[ -e /etc/config/device_manager ] && exit 0
 
-# Ensure default groups exist if not present
-uci get device_manager.smart_home >/dev/null 2>&1 || {
-	uci set device_manager.smart_home=group
-	uci set device_manager.smart_home.name='智能家居'
-}
-uci get device_manager.phone >/dev/null 2>&1 || {
-	uci set device_manager.phone=group
-	uci set device_manager.phone.name='手机设备'
-}
-uci get device_manager.computer >/dev/null 2>&1 || {
-	uci set device_manager.computer=group
-	uci set device_manager.computer.name='电脑设备'
-}
-uci get device_manager.network >/dev/null 2>&1 || {
-	uci set device_manager.network=group
-	uci set device_manager.network.name='网络设备'
-}
-uci get device_manager.other >/dev/null 2>&1 || {
-	uci set device_manager.other=group
-	uci set device_manager.other.name='其他设备'
-}
-uci commit device_manager
-
-exit 0
+touch /etc/config/device_manager
+trap 'uci -q revert device_manager || :; rm -f /etc/config/device_manager' EXIT
+uci -q batch <<'EOF'
+set device_manager.smart_home=group
+set device_manager.smart_home.name='智能家居'
+set device_manager.phone=group
+set device_manager.phone.name='手机设备'
+set device_manager.computer=group
+set device_manager.computer.name='电脑设备'
+set device_manager.network=group
+set device_manager.network.name='网络设备'
+set device_manager.other=group
+set device_manager.other.name='其他设备'
+commit device_manager
+EOF
+trap - EXIT

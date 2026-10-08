@@ -3,9 +3,10 @@
 		"description": "Grant access to LAN device manager",
 		"read": {
 			"ubus": {
-				"luci-rpc": [ "getHostHints", "getDHCPLeases", "getNetworkDevices", "getWirelessDevices" ],
-				"luci.device-manager": [ "get_online_status" ],
-				"iwinfo": [ "assoclist" ]
+				"luci-rpc": [ "getHostHints", "getDHCPLeases", "getWirelessDevices" ],
+				"luci.device-manager": [ "get_online_status", "get_language" ],
+				"iwinfo": [ "assoclist" ],
+				"file": [ "read" ]
 			},
 			"file": {
 				"/proc/net/arp": [ "read" ]
@@ -14,7 +15,7 @@
 		},
 		"write": {
 			"ubus": {
-				"uci": [ "add", "set", "delete", "order", "commit", "apply", "confirm" ]
+				"uci": [ "add", "set", "delete", "commit", "revert" ]
 			},
 			"uci": [ "device_manager" ]
 		}

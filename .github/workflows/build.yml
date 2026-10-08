@@ -2,31 +2,29 @@ name: Build OpenWrt Package
 
 on:
   push:
-    tags:
-      - 'v*'
+    tags: ['v*']
   workflow_dispatch:
     inputs:
       openwrt_version:
-        description: 'OpenWrt SDK release version'
+        description: 'OpenWrt release version'
         required: false
         default: '24.10.0'
       openwrt_arch:
-        description: 'OpenWrt target architecture'
+        description: 'OpenWrt target/subtarget'
         required: false
         default: 'x86/64'
 
+permissions:
+  contents: read
+
 jobs:
   build:
-    name: Build package (${{ matrix.target }}-${{ matrix.version }})
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - version: '24.10.0'
-            target: 'x86/64'
-            sdk_url: 'https://downloads.openwrt.org/releases/24.10.0/targets/x86/64/openwrt-sdk-24.10.0-x86-64_gcc-13.3.0_musl.Linux-x86_64.tar.zst'
-
+    permissions:
+      contents: write
+    env:
+      OPENWRT_VERSION: ${{ inputs.openwrt_version || '24.10.0' }}
+      OPENWRT_TARGET: ${{ inputs.openwrt_arch || 'x86/64' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -36,42 +34,51 @@ jobs:
       - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential libncurses5-dev libncursesw5-dev \
+          sudo apt-get install -y build-essential libncurses-dev \
             zlib1g-dev gawk git gettext libssl-dev xsltproc rsync wget zstd
 
-      - name: Download and unpack OpenWrt SDK
+      - name: Resolve requested official SDK
+        id: sdk
+        run: python3 package-src/tools/resolve-sdk.py "$OPENWRT_VERSION" "$OPENWRT_TARGET" >> "$GITHUB_OUTPUT"
+
+      - name: Download, verify and unpack OpenWrt SDK
+        env:
+          SDK_URL: ${{ steps.sdk.outputs.sdk_url }}
+          SDK_SHA256: ${{ steps.sdk.outputs.sdk_sha256 }}
         run: |
           mkdir -p sdk
-          wget -qO sdk.tar.zst "${{ matrix.sdk_url }}"
-          tar --zstd -xf sdk.tar.zst -C sdk --strip-components=1
-          rm -f sdk.tar.zst
+          wget -qO sdk.tar "$SDK_URL"
+          printf '%s  sdk.tar\n' "$SDK_SHA256" | sha256sum -c -
+          tar -xf sdk.tar -C sdk --strip-components=1
+          rm -f sdk.tar
 
-      - name: Configure feeds and link package
+      - name: Configure feeds and copy package
         run: |
           cd sdk
           ./scripts/feeds update -a
-          ./scripts/feeds install luci-base
+          ./scripts/feeds install luci-base rpcd-mod-file rpcd-mod-iwinfo ip-tiny jshn
           mkdir -p package/luci-app-device-manager
-          cp -r ../package-src/* package/luci-app-device-manager/
-          printf "CONFIG_PACKAGE_luci-app-device-manager=m\n" >> .config
+          cp -a ../package-src/Makefile ../package-src/LICENSE ../package-src/htdocs ../package-src/root ../package-src/po package/luci-app-device-manager/
+          python3 ../package-src/tools/configure-sdk.py .
           make defconfig
 
       - name: Compile luci-app-device-manager
         run: |
           cd sdk
-          make package/luci-app-device-manager/compile V=s -j$(nproc)
+          make package/luci-app-device-manager/compile V=s -j"$(nproc)"
 
-      - name: Organize output packages
+      - name: Collect plugin packages
         run: |
           mkdir -p bin-packages
-          find sdk/bin/packages/ -type f \( -name "*.ipk" -o -name "*.apk" \) -exec cp {} bin-packages/ \;
-          ls -la bin-packages/
+          find sdk/bin/packages/ -type f \( -name '*device-manager*.ipk' -o -name '*device-manager*.apk' \) -exec cp {} bin-packages/ \;
+          test -n "$(find bin-packages -type f -print -quit)"
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: luci-app-device-manager-${{ matrix.version }}
+          name: luci-app-device-manager-${{ env.OPENWRT_VERSION }}
           path: bin-packages/*
+          if-no-files-found: error
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
@@ -81,4 +88,3 @@ jobs:
           draft: false
           prerelease: false
           generate_release_notes: true
-

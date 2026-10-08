@@ -1,12 +1,342 @@
 msgid ""
-msgstr "Content-Type: text/plain; charset=UTF-8\n"
+msgstr ""
+"Project-Id-Version: luci-app-device-manager\n"
+"PO-Revision-Date: 2026-10-08 00:00+0800\n"
+"Last-Translator: luci-app-device-manager contributors\n"
+"Language-Team: Chinese (Simplified)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "%d devices"
+msgstr ""
+
+msgid "%s; failed to discard pending changes: %s"
+msgstr ""
+
+msgid "+ Add device"
+msgstr ""
+
+msgid "A conflicting configuration record exists"
+msgstr ""
+
+msgid "A group with this name already exists"
+msgstr ""
+
+msgid "ARP record exists without recent activity evidence"
+msgstr ""
+
+msgid "Actions"
+msgstr ""
+
+msgid "Active Wi-Fi association"
+msgstr ""
+
+msgid "Active network neighbor (%s)"
+msgstr ""
+
+msgid "Add device"
+msgstr ""
+
+msgid "Add group"
+msgstr ""
+
+msgid "All devices"
+msgstr ""
+
+msgid "All groups"
+msgstr ""
+
+msgid "Cancel"
+msgstr ""
+
+msgid "Close"
+msgstr ""
+
+msgid "Confirm delete"
+msgstr ""
+
+msgid "Could not create group: %s"
+msgstr ""
+
+msgid "Could not delete group: %s"
+msgstr ""
+
+msgid "Could not refresh the device list: %s"
+msgstr ""
+
+msgid "Current IP address"
+msgstr ""
+
+msgid "Current group name"
+msgstr ""
+
+msgid "Current status"
+msgstr ""
+
+msgid "Custom name"
+msgstr ""
+
+msgid "Delete"
+msgstr ""
+
+msgid "Delete failed: %s"
+msgstr ""
+
+msgid "Delete group"
+msgstr ""
+
+msgid "Delete group \"%s\"?"
+msgstr ""
+
+msgid "Delete record"
+msgstr ""
+
+msgid "Delete the saved record for \"%s\" (%s)?"
+msgstr ""
+
+msgid "Device \"%s\" saved."
+msgstr ""
 
 msgid "Device Manager"
+msgstr ""
+
+msgid "Device count"
+msgstr ""
+
+msgid "Device group"
+msgstr ""
+
+msgid "Device groups"
+msgstr ""
+
+msgid "Device name"
+msgstr ""
+
+msgid "Device remarks"
+msgstr ""
+
+msgid "Device status"
+msgstr ""
+
+msgid "Discover network devices and save custom names, remarks and groups by MAC address."
+msgstr ""
+
+msgid "Edit"
+msgstr ""
+
+msgid "Edit device"
+msgstr ""
+
+msgid "Enter a valid MAC address"
+msgstr ""
+
+msgid "Enter a valid MAC address (e.g. AA:BB:CC:11:22:33)"
+msgstr ""
+
+msgid "Enter a valid group name"
+msgstr ""
+
+msgid "Group"
+msgstr ""
+
+msgid "Group \"%s\" created."
+msgstr ""
+
+msgid "Group \"%s\" deleted. Its devices are now ungrouped."
+msgstr ""
+
+msgid "Group ID"
+msgstr ""
+
+msgid "Group name"
+msgstr ""
+
+msgid "Group names support Unicode text and common symbols"
+msgstr ""
+
+msgid "Group renamed to \"%s\"."
+msgstr ""
+
+msgid "Hardware address; colon or hyphen separators are accepted"
+msgstr ""
+
+msgid "Hostname: "
+msgstr ""
+
+msgid "IP address"
+msgstr ""
+
+msgid "Input is too long"
+msgstr ""
+
+msgid "Invalid discovery response"
+msgstr ""
+
+msgid "Known device without recent activity evidence"
 msgstr ""
 
 msgid "LAN Device Management"
 msgstr ""
 
-msgid "Manage local network devices, set custom device names and remarks."
+msgid "Leave empty to display the default hostname"
 msgstr ""
 
+msgid "MAC address"
+msgstr ""
+
+msgid "Manage groups"
+msgstr ""
+
+msgid "Network neighbor probe failed (FAILED)"
+msgstr ""
+
+msgid "New group"
+msgstr ""
+
+msgid "New group name"
+msgstr ""
+
+msgid "No devices found. Refresh the list to try again."
+msgstr ""
+
+msgid "No devices in this group"
+msgstr ""
+
+msgid "No devices match \"%s\""
+msgstr ""
+
+msgid "No devices with unknown status"
+msgstr ""
+
+msgid "No hostname detected"
+msgstr ""
+
+msgid "No offline devices"
+msgstr ""
+
+msgid "No online devices"
+msgstr ""
+
+msgid "No recent activity confirmed (%s)"
+msgstr ""
+
+msgid "Not detected"
+msgstr ""
+
+msgid "Offline"
+msgstr ""
+
+msgid "Offline devices"
+msgstr ""
+
+msgid "Online"
+msgstr ""
+
+msgid "Online devices"
+msgstr ""
+
+msgid "Organize this device by purpose or location"
+msgstr ""
+
+msgid "Read-only"
+msgstr ""
+
+msgid "Read-only access"
+msgstr ""
+
+msgid "Record the location, purpose or owner of this device"
+msgstr ""
+
+msgid "Refresh list"
+msgstr ""
+
+msgid "Remarks"
+msgstr ""
+
+msgid "Rename"
+msgstr ""
+
+msgid "Rename failed: %s"
+msgstr ""
+
+msgid "Rename group"
+msgstr ""
+
+msgid "Renaming preserves the group ID and all device assignments"
+msgstr ""
+
+msgid "Save"
+msgstr ""
+
+msgid "Save changes"
+msgstr ""
+
+msgid "Save failed: %s"
+msgstr ""
+
+msgid "Saved device not found in the current network"
+msgstr ""
+
+msgid "Saved record for \"%s\" deleted."
+msgstr ""
+
+msgid "Search names, IP, MAC, remarks or groups..."
+msgstr ""
+
+msgid "Some device data could not be read. Unconfirmed devices are shown as unknown: %s"
+msgstr ""
+
+msgid "Some discovery sources are unavailable"
+msgstr ""
+
+msgid "System hostname"
+msgstr ""
+
+msgid "The %d devices in this group will become ungrouped. Their names, MAC addresses and remarks will be preserved."
+msgstr ""
+
+msgid "The default hostname will be displayed. The saved record, remarks and group assignment will be removed."
+msgstr ""
+
+msgid "This group no longer exists"
+msgstr ""
+
+msgid "Unavailable"
+msgstr ""
+
+msgid "Ungrouped"
+msgstr ""
+
+msgid "Unknown"
+msgstr ""
+
+msgid "Unknown device"
+msgstr ""
+
+msgid "e.g. AA:BB:CC:11:22:33"
+msgstr ""
+
+msgid "e.g. Living room TV"
+msgstr ""
+
+msgid "e.g. Living room TV, work computer"
+msgstr ""
+
+msgid "e.g. Media devices, office devices"
+msgstr ""
+
+msgid "Smart home"
+msgstr ""
+
+msgid "Phones"
+msgstr ""
+
+msgid "Computers"
+msgstr ""
+
+msgid "Network devices"
+msgstr ""
+
+msgid "Other devices"
+msgstr ""
