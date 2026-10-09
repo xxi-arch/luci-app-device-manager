@@ -315,7 +315,8 @@ function parseDevices(data, groups) {
 		if (!devices.has(normalized)) devices.set(normalized, {
 			mac: normalized, hostname: '', ipv4: '', ipv6: '', customName: '', remark: '',
 			group: 'ungrouped', sid: null, isSaved: false, isDiscovered: false,
-			status: 'unknown', statusDetail: '', type: 'unknown'
+			status: 'unknown', statusDetail: '', type: 'unknown',
+			ipv4Addresses: [], ipv6Addresses: [], interfaces: [], discoverySources: [], neighbors: []
 		});
 		return devices.get(normalized);
 	};
@@ -330,7 +331,12 @@ function parseDevices(data, groups) {
 			addressInterfaces.get(address).add(iface);
 		}
 		const field = address.includes(':') ? 'ipv6' : 'ipv4';
+		if (!device[field + 'Addresses'].includes(address)) device[field + 'Addresses'].push(address);
+		if (iface && !device.interfaces.includes(iface)) device.interfaces.push(iface);
 		if (!device[field] || preferred) device[field] = address;
+	};
+	const addSource = (device, source) => {
+		if (!device.discoverySources.includes(source)) device.discoverySources.push(source);
 	};
 	const toArray = value => Array.isArray(value) ? value : value == null ? [] : [ value ];
 	const leases = data.leases || {};
@@ -338,6 +344,7 @@ function parseDevices(data, groups) {
 		const device = getEntry(lease.macaddr);
 		if (!device) continue;
 		device.isDiscovered = true;
+		addSource(device, 'DHCP');
 		device.hostname = sanitizeInput(lease.hostname || device.hostname);
 		for (const ip of [ ...toArray(lease.ipaddr), ...toArray(lease.ip6addrs || lease.ip6addr) ]) addAddress(device, ip);
 	}
@@ -345,6 +352,7 @@ function parseDevices(data, groups) {
 		const device = getEntry(mac);
 		if (!device || !hint || typeof hint !== 'object') continue;
 		device.isDiscovered = true;
+		addSource(device, 'Host hints');
 		if (!device.hostname) device.hostname = sanitizeInput(hint.name);
 		for (const ip of [ ...toArray(hint.ipaddrs || hint.ipv4), ...toArray(hint.ip6addrs || hint.ipv6) ]) addAddress(device, ip);
 	}
@@ -362,12 +370,15 @@ function parseDevices(data, groups) {
 		const device = getEntry(typeof station === 'string' ? station : station.mac);
 		if (!device) continue;
 		device.isDiscovered = true;
+		addSource(device, 'Wi-Fi');
+		if (station.dev && !device.interfaces.includes(station.dev)) device.interfaces.push(station.dev);
 		wifi.add(device.mac);
 	}
 	for (const entry of data.arp || []) {
 		const device = getEntry(entry.mac);
 		if (!device) continue;
 		device.isDiscovered = true;
+		addSource(device, 'ARP');
 		addAddress(device, entry.ip, false, entry.dev);
 		if (Number(entry.flags) === 2) arp.add(device.mac);
 	}
@@ -390,6 +401,10 @@ function parseDevices(data, groups) {
 			if (owners && owners.size === 1) mac = owners.values().next().value;
 		}
 		if (!mac || !devices.has(mac)) continue;
+		const device = devices.get(mac);
+		addSource(device, 'Neighbor table');
+		device.neighbors.push({ ip: neighbor.ip || '', dev: neighbor.dev || '', state: neighbor.state || '' });
+		if (neighbor.dev && !device.interfaces.includes(neighbor.dev)) device.interfaces.push(neighbor.dev);
 		const state = String(neighbor.state || '').toUpperCase();
 		const previous = neighborStates.get(mac);
 		if (previous == null || (STATE_PRIORITY[state] ?? -1) > (STATE_PRIORITY[previous] ?? -1)) neighborStates.set(mac, state);

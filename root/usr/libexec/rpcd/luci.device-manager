@@ -67,9 +67,110 @@ EOF
 	printf '%s %s\n' "${uptime%%.*}" "$(((cursor+processed)%count))" > /tmp/luci-device-manager-probe.state
 ) 9>/tmp/luci-device-manager-probe.lock 2>/dev/null
 
+ping_error() {
+	json_init
+	json_add_boolean ok 0
+	json_add_string error "$1"
+	json_dump
+}
+
+# Resolve the target on the router; callers provide a MAC, never a shell command
+# or an arbitrary destination. One global lock bounds simultaneous detail probes.
+ping_device() (
+	command -v flock >/dev/null 2>&1 || { ping_error 'Ping is unavailable'; exit 0; }
+	flock -n 9 || { ping_error 'Another device is being probed. Please retry.'; exit 0; }
+	json_load "$(cat)" || { ping_error 'Enter a valid MAC address'; exit 0; }
+	json_get_var mac mac
+	mac="$(printf '%s' "$mac" | tr 'A-F' 'a-f')"
+	if ! printf '%s\n' "$mac" | awk -F: '
+		NF != 6 {exit 1}
+		{for (i=1; i<=6; i++) if ($i !~ /^[0-9a-f][0-9a-f]$/) exit 1}
+		$0 == "00:00:00:00:00:00" || $0 == "ff:ff:ff:ff:ff:ff" {exit 1}
+	'; then
+		ping_error 'Enter a valid MAC address'; exit 0
+	fi
+	neighbors="$(ip neigh show 2>/dev/null)" || { ping_error 'Unable to read the kernel neighbor table'; exit 0; }
+	candidates="$(
+		{
+			printf '%s\n' "$neighbors" | awk -v mac="$mac" '
+				{
+					owner=""; dev=""; active=0
+					for (i=2; i<=NF; i++) {
+						if ($i=="lladdr") owner=tolower($(i+1))
+						if ($i=="dev") dev=$(i+1)
+						if ($i=="REACHABLE") active=1
+					}
+					if (owner==mac) {
+						priority=($1 ~ /:/) ? (tolower($1) ~ /^fe80:/ ? 4 : 3) : (active ? 0 : 2)
+						print priority, $1, dev
+					}
+				}'
+			awk -v mac="$mac" 'tolower($2)==mac {print 1, $3}' /tmp/dhcp.leases /var/dhcp.leases 2>/dev/null
+		} | sort -n -k1,1
+	)"
+	address=""; iface=""
+	while read -r priority candidate candidate_iface; do
+		# Only numeric IP literals and kernel interface names reach ping.
+		if printf '%s\n' "$candidate" | awk '
+			/^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/ {split($0,a,"."); for(i=1;i<=4;i++) if(a[i]>255) exit 1; exit 0}
+			/^[0-9a-fA-F:]+$/ && /:/ {exit 0}
+			{exit 1}'; then
+			case "$candidate_iface" in *[!a-zA-Z0-9_.:-]*) continue ;; esac
+			# A stale lease must not cause another device at a reassigned IP to
+			# be reported as this MAC. Scope link-local ownership by interface.
+			if ! printf '%s\n' "$neighbors" | awk -v address="$candidate" -v mac="$mac" -v iface="$candidate_iface" '
+				$1==address {
+					owner=""; dev=""
+					for(i=2;i<=NF;i++) {
+						if($i=="lladdr") owner=tolower($(i+1))
+						if($i=="dev") dev=$(i+1)
+					}
+					if(owner!="" && owner!=mac && (iface=="" || iface==dev)) exit 1
+				}'; then
+				continue
+			fi
+			address="$candidate"; iface="$candidate_iface"; break
+		fi
+	done <<EOF
+$candidates
+EOF
+	[ -n "$address" ] || { ping_error 'No known IP address for this device'; exit 0; }
+	set -- -c 1 -w 3 -W 2
+	[ -z "$iface" ] || set -- "$@" -I "$iface"
+	case "$address" in
+		*:*)
+			if command -v ping6 >/dev/null 2>&1; then
+				ping_command=ping6
+			else
+				ping_command=ping
+				set -- -6 "$@"
+			fi ;;
+		*) ping_command=ping ;;
+	esac
+	command -v "$ping_command" >/dev/null 2>&1 || { ping_error 'Ping is unavailable'; exit 0; }
+	output="$("$ping_command" "$@" "$address" 2>&1)"
+	result=$?
+	json_init
+	json_add_string ip "$address"
+	json_add_string interface "$iface"
+	json_add_string output "$output"
+	if [ "$result" -eq 0 ] || [ "$result" -eq 1 ]; then
+		json_add_boolean ok 1
+		json_add_boolean reachable "$((1-result))"
+	else
+		json_add_boolean ok 0
+		json_add_string error 'Ping could not be completed'
+	fi
+	json_dump
+) 9>/tmp/luci-device-manager-single-ping.lock 2>/dev/null
+
 case "$1:$2" in
 	list:*)
-		printf '{"get_online_status":{},"get_language":{}}\n'
+		printf '{"get_online_status":{},"get_language":{},"ping_device":{"mac":"string"}}\n'
+		;;
+	call:ping_device)
+		. /usr/share/libubox/jshn.sh
+		ping_device
 		;;
 	call:get_language)
 		. /usr/share/libubox/jshn.sh

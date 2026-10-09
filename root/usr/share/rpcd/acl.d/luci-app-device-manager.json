@@ -4,7 +4,7 @@
 		"read": {
 			"ubus": {
 				"luci-rpc": [ "getHostHints", "getDHCPLeases", "getWirelessDevices" ],
-				"luci.device-manager": [ "get_online_status", "get_language" ],
+				"luci.device-manager": [ "get_online_status", "get_language", "ping_device" ],
 				"iwinfo": [ "assoclist" ],
 				"file": [ "read" ]
 			},

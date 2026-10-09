@@ -10,6 +10,7 @@ const CONFIG = 'device_manager';
 const callHints = rpc.declare({ object: 'luci-rpc', method: 'getHostHints', reject: true });
 const callLeases = rpc.declare({ object: 'luci-rpc', method: 'getDHCPLeases', reject: true });
 const callNeighbors = rpc.declare({ object: 'luci.device-manager', method: 'get_online_status', reject: true });
+const callPing = rpc.declare({ object: 'luci.device-manager', method: 'ping_device', params: [ 'mac' ], reject: true });
 const callWireless = rpc.declare({ object: 'luci-rpc', method: 'getWirelessDevices', reject: true });
 const callAssoc = rpc.declare({ object: 'iwinfo', method: 'assoclist', params: [ 'device' ], reject: true });
 const callCommit = rpc.declare({ object: 'uci', method: 'commit', params: [ 'config' ], reject: true });
@@ -71,6 +72,27 @@ function requireGroup(id) {
 }
 
 return baseclass.extend({
+	pingDevice: function(mac) {
+		const normalized = model.normalizeMac(mac);
+		if (!normalized) return Promise.reject(new Error(i18n.t('Enter a valid MAC address')));
+		return callPing(normalized).then(reply => {
+			const errors = {
+				'No known IP address for this device': i18n.t('No known IP address for this device'),
+				'Another device is being probed. Please retry.': i18n.t('Another device is being probed. Please retry.'),
+				'Ping is unavailable': i18n.t('Ping is unavailable'),
+				'Enter a valid MAC address': i18n.t('Enter a valid MAC address'),
+				'Unable to read the kernel neighbor table': i18n.t('Unable to read the kernel neighbor table')
+			};
+			if (requireObject(reply).ok !== true) {
+				const error = new Error(errors[reply.error] || i18n.t('Ping could not be completed'));
+				error.output = typeof reply.output === 'string' ? reply.output : '';
+				throw error;
+			}
+			if (typeof reply.reachable !== 'boolean' || typeof reply.ip !== 'string' || typeof reply.output !== 'string')
+				throw new Error(i18n.t('Invalid discovery response'));
+			return reply;
+		});
+	},
 	// Reads and writes share the queue so a refresh cannot discard an in-flight edit.
 	queue: function(task) {
 		const result = (this.pending || Promise.resolve()).then(task);

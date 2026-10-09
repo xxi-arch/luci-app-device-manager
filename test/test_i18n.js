@@ -51,7 +51,7 @@ test('Chinese page, status details, placeholders and dialogs work without a sepa
     assert.equal(ctx.env.ui.modal.attrs.title, '编辑设备');
     assert.ok(button(ctx.env.ui.modal, '保存'));
     ctx.page.confirmDelete(ctx.page.devices[0]);
-    assert.equal(ctx.env.ui.modal.attrs.title, '确认删除记录');
+    assert.equal(ctx.env.ui.modal.attrs.title, '清空记录');
     ctx.page.showGroupModal();
     assert.equal(ctx.env.ui.modal.attrs.title, '设备分组管理');
     assert.ok(button(ctx.env.ui.modal, '添加分组'));

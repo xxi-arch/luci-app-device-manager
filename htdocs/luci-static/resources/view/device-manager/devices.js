@@ -187,6 +187,8 @@ return view.extend({
 	handleSort: function(key) { return table.handleSort.call(this, key); },
 	updateSortHeaders: function() { return table.updateSortHeaders.call(this); },
 	showEditModal: function(device) { return deviceDialog.showEditModal.call(this, device); },
+	showDetailModal: function(device) { return deviceDialog.showDetailModal.call(this, device); },
+	handlePingDevice: function(device) { return service.pingDevice(device.mac); },
 	confirmDelete: function(device) { return deviceDialog.confirmDelete.call(this, device); },
 	showGroupModal: function() { return groupDialog.showGroupModal.call(this); },
 	promptRenameGroup: function(group) { return groupDialog.promptRenameGroup.call(this, group); },

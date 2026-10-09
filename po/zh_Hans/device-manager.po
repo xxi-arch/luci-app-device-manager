@@ -9,11 +9,9 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Language: zh_Hans\n"
 
-#, c-format
 msgid "%d devices"
 msgstr "%d 台设备"
 
-#, c-format
 msgid "%s; failed to discard pending changes: %s"
 msgstr "%s；清理待提交配置失败：%s"
 
@@ -26,6 +24,9 @@ msgstr "存在冲突的配置记录"
 msgid "A group with this name already exists"
 msgstr "已存在同名分组，请使用其他名称"
 
+msgid "ARP"
+msgstr "ARP 表"
+
 msgid "ARP record exists without recent activity evidence"
 msgstr "存在 ARP 记录，缺少近期活动证据"
 
@@ -35,7 +36,6 @@ msgstr "操作"
 msgid "Active Wi-Fi association"
 msgstr "Wi-Fi 活跃连接"
 
-#, c-format
 msgid "Active network neighbor (%s)"
 msgstr "网络邻居活跃 (%s)"
 
@@ -51,24 +51,45 @@ msgstr "全部设备"
 msgid "All groups"
 msgstr "全部分组"
 
+msgid "Another device is being probed. Please retry."
+msgstr "另一个设备正在探测，请稍后重试。"
+
+msgid "Automatic"
+msgstr "自动识别"
+
 msgid "Cancel"
 msgstr "取消"
+
+msgid "Clear failed: %s"
+msgstr "清空失败：%s"
+
+msgid "Clear record"
+msgstr "清空记录"
+
+msgid "Clear the saved record for \"%s\" (%s)?"
+msgstr "确定清空设备【%s】（%s）的保存记录吗？"
+
+msgid "Clears the custom name, remarks, group and device type. The device remains discoverable on the network."
+msgstr "将清空自定义名称、备注、分组和设备类型设置。设备仍可在网络中被发现。"
 
 msgid "Close"
 msgstr "关闭"
 
+msgid "Computers"
+msgstr "电脑设备"
+
+msgid "Confirm clear"
+msgstr "确认清空"
+
 msgid "Confirm delete"
 msgstr "确认删除"
 
-#, c-format
 msgid "Could not create group: %s"
 msgstr "创建分组失败: %s"
 
-#, c-format
 msgid "Could not delete group: %s"
 msgstr "删除分组失败: %s"
 
-#, c-format
 msgid "Could not refresh the device list: %s"
 msgstr "刷新设备列表失败：%s"
 
@@ -84,28 +105,18 @@ msgstr "当前在线状态"
 msgid "Custom name"
 msgstr "设备显示名称"
 
+msgid "DHCP"
+msgstr "DHCP 租约"
+
 msgid "Delete"
 msgstr "删除"
-
-#, c-format
-msgid "Delete failed: %s"
-msgstr "删除失败: %s"
 
 msgid "Delete group"
 msgstr "确认删除分组"
 
-#, c-format
 msgid "Delete group \"%s\"?"
 msgstr "确定要删除分组【%s】吗？"
 
-msgid "Delete record"
-msgstr "确认删除记录"
-
-#, c-format
-msgid "Delete the saved record for \"%s\" (%s)?"
-msgstr "确定要删除设备【%s】(%s) 的自定义名称和备注记录吗？"
-
-#, c-format
 msgid "Device \"%s\" saved."
 msgstr "设备【%s】信息已保存并生效！"
 
@@ -114,6 +125,9 @@ msgstr "设备管理"
 
 msgid "Device count"
 msgstr "包含设备数"
+
+msgid "Device details"
+msgstr "设备详情"
 
 msgid "Device group"
 msgstr "所属分组"
@@ -133,6 +147,12 @@ msgstr "设备状态"
 msgid "Discover network devices and save custom names, remarks and groups by MAC address."
 msgstr "自动识别局域网设备在线状态，支持按 MAC 地址自定义显示名称、备注和自定义设备分组，配置永久保存。"
 
+msgid "Discovered on network"
+msgstr "网络已发现"
+
+msgid "Discovery sources"
+msgstr "发现来源"
+
 msgid "Edit"
 msgstr "编辑"
 
@@ -151,11 +171,9 @@ msgstr "请输入有效的分组名称"
 msgid "Group"
 msgstr "分组"
 
-#, c-format
 msgid "Group \"%s\" created."
 msgstr "成功创建分组【%s】！"
 
-#, c-format
 msgid "Group \"%s\" deleted. Its devices are now ungrouped."
 msgstr "分组【%s】已删除，所属设备已转为未分组。"
 
@@ -168,18 +186,26 @@ msgstr "分组名称"
 msgid "Group names support Unicode text and common symbols"
 msgstr "分组名称支持中文、英文及常用符号，稳定保存"
 
-#, c-format
 msgid "Group renamed to \"%s\"."
 msgstr "分组已成功重命名为【%s】！"
 
 msgid "Hardware address; colon or hyphen separators are accepted"
 msgstr "设备的物理硬件地址，支持冒号或短横线分隔（不区分大小写）"
 
+msgid "Host hints"
+msgstr "主机提示"
+
 msgid "Hostname: "
 msgstr "主机名: "
 
 msgid "IP address"
 msgstr "IP 地址"
+
+msgid "IPv4 addresses"
+msgstr "IPv4 地址"
+
+msgid "IPv6 addresses"
+msgstr "IPv6 地址"
 
 msgid "Input is too long"
 msgstr "输入内容超出长度限制"
@@ -202,6 +228,21 @@ msgstr "MAC 地址"
 msgid "Manage groups"
 msgstr "分组管理"
 
+msgid "Manual"
+msgstr "手动指定"
+
+msgid "Neighbor records"
+msgstr "邻居记录"
+
+msgid "Neighbor table"
+msgstr "邻居表"
+
+msgid "Network devices"
+msgstr "网络设备"
+
+msgid "Network interfaces"
+msgstr "网络接口"
+
 msgid "Network neighbor probe failed (FAILED)"
 msgstr "网络邻居探测失败 (FAILED)"
 
@@ -211,13 +252,21 @@ msgstr "新增分组"
 msgid "New group name"
 msgstr "新分组名称"
 
+msgid "No"
+msgstr "否"
+
+msgid "No ICMP reply was received. The device may block Ping; this does not confirm it is offline."
+msgstr "未收到 ICMP 回复。设备可能禁用 Ping，不能据此确认设备已离线。"
+
+msgid "No Ping reply"
+msgstr "Ping 未响应"
+
 msgid "No devices found. Refresh the list to try again."
 msgstr "暂无局域网设备数据，点击右上角【刷新】重试或【+ 手动添加设备】"
 
 msgid "No devices in this group"
 msgstr "当前分组下暂无设备记录"
 
-#, c-format
 msgid "No devices match \"%s\""
 msgstr "未找到与 “%s” 匹配的设备记录"
 
@@ -227,13 +276,15 @@ msgstr "当前没有状态未知的设备"
 msgid "No hostname detected"
 msgstr "无检测主机名"
 
+msgid "No known IP address for this device"
+msgstr "暂无该设备的已知 IP 地址，无法 Ping。"
+
 msgid "No offline devices"
 msgstr "当前没有离线设备"
 
 msgid "No online devices"
 msgstr "当前没有在线设备"
 
-#, c-format
 msgid "No recent activity confirmed (%s)"
 msgstr "无法确认近期活动 (%s)"
 
@@ -252,11 +303,38 @@ msgstr "在线"
 msgid "Online devices"
 msgstr "在线设备"
 
+msgid "Online · Ping replied"
+msgstr "在线 · Ping 已响应"
+
 msgid "Organize this device by purpose or location"
 msgstr "为设备指定业务或摆放区域分类"
 
-msgid "Read-only"
-msgstr "只读"
+msgid "Other devices"
+msgstr "其他设备"
+
+msgid "Phones"
+msgstr "手机设备"
+
+msgid "Ping again"
+msgstr "重新 Ping"
+
+msgid "Ping could not be completed"
+msgstr "Ping 执行失败。"
+
+msgid "Ping is unavailable"
+msgstr "路由器未提供 Ping 命令。"
+
+msgid "Ping output"
+msgstr "查看 Ping 输出"
+
+msgid "Probe address: %s"
+msgstr "探测地址：%s"
+
+msgid "Probe unavailable"
+msgstr "无法完成探测"
+
+msgid "Probing…"
+msgstr "正在探测…"
 
 msgid "Read-only access"
 msgstr "仅有只读权限"
@@ -273,7 +351,6 @@ msgstr "备注"
 msgid "Rename"
 msgstr "重命名"
 
-#, c-format
 msgid "Rename failed: %s"
 msgstr "重命名失败: %s"
 
@@ -289,39 +366,50 @@ msgstr "保存"
 msgid "Save changes"
 msgstr "保存修改"
 
-#, c-format
 msgid "Save failed: %s"
 msgstr "保存失败: %s"
 
 msgid "Saved device not found in the current network"
 msgstr "未在当前网络发现（已保存记录）"
 
-#, c-format
-msgid "Saved record for \"%s\" deleted."
-msgstr "已成功删除设备【%s】的备注记录。"
+msgid "Saved record"
+msgstr "已保存记录"
+
+msgid "Saved record for \"%s\" cleared."
+msgstr "设备【%s】的保存记录已清空。"
 
 msgid "Search names, IP, MAC, remarks or groups..."
 msgstr "搜索设备名称、主机名、IP、MAC、备注、分组..."
 
-#, c-format
+msgid "Sending one Ping from the router to this device."
+msgstr "正在从路由器向该设备发送一次 Ping。"
+
+msgid "Smart home"
+msgstr "智能家居"
+
 msgid "Some device data could not be read. Unconfirmed devices are shown as unknown: %s"
 msgstr "部分设备数据读取失败，无法确认的设备显示为状态未知：%s"
 
 msgid "Some discovery sources are unavailable"
 msgstr "部分设备发现数据源不可用"
 
+msgid "Status evidence"
+msgstr "状态依据"
+
 msgid "System hostname"
 msgstr "系统主机名"
 
-#, c-format
 msgid "The %d devices in this group will become ungrouped. Their names, MAC addresses and remarks will be preserved."
 msgstr "删除分组后，该组下的 %d 台设备将自动转为【未分组】。设备名称、MAC 及备注将被完整保留，绝不删除设备。"
 
-msgid "The default hostname will be displayed. The saved record, remarks and group assignment will be removed."
-msgstr "删除后将恢复显示默认主机名，已保存的备注和分组将被清空。"
-
 msgid "This group no longer exists"
 msgstr "该分组已不存在"
+
+msgid "Type detection"
+msgstr "类型识别"
+
+msgid "Unable to read the kernel neighbor table"
+msgstr "无法读取内核邻居表。"
 
 msgid "Unavailable"
 msgstr "未获取"
@@ -335,6 +423,15 @@ msgstr "状态未知"
 msgid "Unknown device"
 msgstr "未知设备"
 
+msgid "View"
+msgstr "查看"
+
+msgid "Wi-Fi"
+msgstr "Wi-Fi 连接"
+
+msgid "Yes"
+msgstr "是"
+
 msgid "e.g. AA:BB:CC:11:22:33"
 msgstr "例如：AA:BB:CC:11:22:33"
 
@@ -346,18 +443,3 @@ msgstr "例如：客厅电视、主力工作电脑"
 
 msgid "e.g. Media devices, office devices"
 msgstr "例如：智能影音、办公设备"
-
-msgid "Smart home"
-msgstr "智能家居"
-
-msgid "Phones"
-msgstr "手机设备"
-
-msgid "Computers"
-msgstr "电脑设备"
-
-msgid "Network devices"
-msgstr "网络设备"
-
-msgid "Other devices"
-msgstr "其他设备"

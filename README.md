@@ -9,6 +9,8 @@
 - **设备状态识别**：区分在线、离线与状态未知。
 - **分批主动探测**：限制并发和单次探测时间，多个页面共享探测锁；30 秒内不重复探测，未完成的扫描在后续刷新继续。
 - **名称与备注**：自定义设备名称、位置和用途，按 MAC 地址长期保存。
+- **设备详情与单独 Ping**：查看全部已发现的地址、接口、状态依据和备注；打开详情自动探测该设备，也可重新 Ping。
+- **清空记录**：在编辑弹窗中确认清空自定义名称、备注、分组和设备类型，保留网络中的设备发现能力。
 - **设备分组**：支持新增、重命名、删除分组及分配设备；删除分组保留设备信息。
 - **快速筛选**：按状态、分组和关键词组合搜索，显示对应设备数量。
 - **手动登记**：提前添加尚未入网的设备，支持只填写 MAC 地址。
@@ -26,6 +28,8 @@ A lightweight LAN device manager for OpenWrt LuCI.
 - **Device status**: Distinguish online, offline and unknown states.
 - **Batched active probing**: Bound concurrency and scan duration across all clients; avoid repeat probing for 30 seconds and resume unfinished scans on later refreshes.
 - **Custom names and remarks**: Save names, locations and purposes by MAC address.
+- **Device details and individual Ping**: Inspect all discovered addresses, interfaces, status evidence and remarks; probe the device when opening details or retry manually.
+- **Clear saved records**: Confirm clearing custom names, remarks, group and type in the edit dialog while keeping network discovery available.
 - **Device groups**: Create, rename, delete and assign groups without losing device information.
 - **Quick filtering**: Combine status, group and keyword filters with device counts.
 - **Manual registration**: Add devices before they join the network, using just a MAC address.

@@ -252,12 +252,12 @@ test('actual add, rename and delete group buttons restore their state', async ()
     const remove = button(ctx.env.ui.modal, 'Confirm delete'); await remove.click(); assert.equal(remove.disabled, false);
     assert.deepEqual(ctx.page.groups, []);
 });
-test('actual delete device button restores its state on failure and retry', async () => {
+test('actual clear record button restores its state on failure and retry', async () => {
     const ctx = pageContext([device]); await renderPage(ctx); ctx.page.confirmDelete(ctx.page.devices[0]);
-    const remove = button(ctx.env.ui.modal, 'Confirm delete'); ctx.state.failCommit = true;
+    const remove = button(ctx.env.ui.modal, 'Confirm clear'); ctx.state.failCommit = true;
     await remove.click(); assert.equal(remove.disabled, false); assert.equal(ctx.state.saved.length, 1);
     ctx.state.failCommit = false; ctx.page.confirmDelete(ctx.page.devices[0]);
-    const retry = button(ctx.env.ui.modal, 'Confirm delete'); await retry.click();
+    const retry = button(ctx.env.ui.modal, 'Confirm clear'); await retry.click();
     assert.equal(retry.disabled, false); assert.equal(ctx.state.saved.length, 0);
 });
 test('refresh button restores state and external group deletion resets the active filter', async () => {
@@ -279,36 +279,42 @@ test('read-only views have no edit actions or writable dialogs and disable the t
     const node = await renderPage(ctx);
     ctx.page.activeTab = 'all'; ctx.page.updateView();
     assert.equal(button(node, 'Edit'), undefined); assert.equal(button(node, 'Delete'), undefined);
-    assert.equal(node.querySelectorAll('.dm-action-link').length, 0);
+    assert.equal(node.querySelectorAll('.dm-action-edit').length, 0);
+    assert.equal(node.querySelectorAll('.dm-action-detail').length, 1);
     assert.equal(button(node, '+ Add device').disabled, true); assert.equal(button(node, 'Manage groups').disabled, true);
     ctx.page.showEditModal(null); ctx.page.showGroupModal(); assert.equal(ctx.env.ui.modal, null);
     assert.equal(ctx.page.handleSave, null); assert.equal(ctx.page.handleSaveApply, null); assert.equal(ctx.page.handleReset, null);
 });
-test('row action links open the matching dialogs without navigating and only saved devices offer deletion', async () => {
+test('rows offer edit/details links and saved records can only be cleared from the edit dialog', async () => {
     const ctx = pageContext([device]);
     ctx.replies['luci-rpc.getHostHints'] = { [other]: { name: 'New device' } };
     const node = await renderPage(ctx);
     ctx.page.activeTab = 'all'; ctx.page.updateView();
     const rows = node.querySelector('#device_manager_tbody').querySelectorAll('tr');
-    const savedRow = rows.find(row => row.querySelector('.dm-action-delete'));
-    const unsavedRow = rows.find(row => !row.querySelector('.dm-action-delete'));
-    assert.equal(unsavedRow.querySelectorAll('a').length, 1);
+    const savedRow = rows.find(row => row.textContent.includes('TV'));
+    const unsavedRow = rows.find(row => row.textContent.includes('New device'));
+    assert.equal(node.querySelectorAll('.dm-action-delete').length, 0);
+    assert.equal(unsavedRow.querySelectorAll('a').length, 2);
     assert.equal(savedRow.querySelectorAll('a').length, 2);
     const edit = savedRow.querySelector('.dm-action-edit');
-    const remove = savedRow.querySelector('.dm-action-delete');
+    const detail = savedRow.querySelector('.dm-action-detail');
     assert.equal(edit.attrs.href, '#'); assert.equal(edit.attrs.role, 'button');
     const click = new Event('click', { cancelable: true });
     edit.dispatchEvent(click);
     assert.equal(click.defaultPrevented, true);
     assert.equal(ctx.env.ui.modal.attrs.title, 'Edit device');
     assert.equal(ctx.env.ui.modal.querySelector('input').value, 'TV');
-    await remove.click();
-    assert.equal(ctx.env.ui.modal.attrs.title, 'Delete record');
+    await button(ctx.env.ui.modal, 'Clear record').click();
+    assert.equal(ctx.env.ui.modal.attrs.title, 'Clear record');
+    await detail.click();
+    assert.equal(ctx.env.ui.modal.attrs.title, 'Device details');
     const space = new Event('keydown', { cancelable: true });
     Object.defineProperty(space, 'key', { value: ' ' });
     edit.dispatchEvent(space);
     assert.equal(space.defaultPrevented, true);
     assert.equal(ctx.env.ui.modal.attrs.title, 'Edit device');
+    await unsavedRow.querySelector('.dm-action-edit').click();
+    assert.equal(button(ctx.env.ui.modal, 'Clear record'), undefined);
 });
 test('tab counts match group/search filters and tabs support keyboard activation', async () => {
     const ctx = pageContext([group, Object.assign({}, device, { group: 'home' })]);

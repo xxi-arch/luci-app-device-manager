@@ -23,6 +23,9 @@ msgstr ""
 msgid "A group with this name already exists"
 msgstr ""
 
+msgid "ARP"
+msgstr ""
+
 msgid "ARP record exists without recent activity evidence"
 msgstr ""
 
@@ -47,10 +50,34 @@ msgstr ""
 msgid "All groups"
 msgstr ""
 
+msgid "Another device is being probed. Please retry."
+msgstr ""
+
+msgid "Automatic"
+msgstr ""
+
 msgid "Cancel"
 msgstr ""
 
+msgid "Clear failed: %s"
+msgstr ""
+
+msgid "Clear record"
+msgstr ""
+
+msgid "Clear the saved record for \"%s\" (%s)?"
+msgstr ""
+
+msgid "Clears the custom name, remarks, group and device type. The device remains discoverable on the network."
+msgstr ""
+
 msgid "Close"
+msgstr ""
+
+msgid "Computers"
+msgstr ""
+
+msgid "Confirm clear"
 msgstr ""
 
 msgid "Confirm delete"
@@ -77,22 +104,16 @@ msgstr ""
 msgid "Custom name"
 msgstr ""
 
-msgid "Delete"
+msgid "DHCP"
 msgstr ""
 
-msgid "Delete failed: %s"
+msgid "Delete"
 msgstr ""
 
 msgid "Delete group"
 msgstr ""
 
 msgid "Delete group \"%s\"?"
-msgstr ""
-
-msgid "Delete record"
-msgstr ""
-
-msgid "Delete the saved record for \"%s\" (%s)?"
 msgstr ""
 
 msgid "Device \"%s\" saved."
@@ -102,6 +123,9 @@ msgid "Device Manager"
 msgstr ""
 
 msgid "Device count"
+msgstr ""
+
+msgid "Device details"
 msgstr ""
 
 msgid "Device group"
@@ -120,6 +144,12 @@ msgid "Device status"
 msgstr ""
 
 msgid "Discover network devices and save custom names, remarks and groups by MAC address."
+msgstr ""
+
+msgid "Discovered on network"
+msgstr ""
+
+msgid "Discovery sources"
 msgstr ""
 
 msgid "Edit"
@@ -161,10 +191,19 @@ msgstr ""
 msgid "Hardware address; colon or hyphen separators are accepted"
 msgstr ""
 
+msgid "Host hints"
+msgstr ""
+
 msgid "Hostname: "
 msgstr ""
 
 msgid "IP address"
+msgstr ""
+
+msgid "IPv4 addresses"
+msgstr ""
+
+msgid "IPv6 addresses"
 msgstr ""
 
 msgid "Input is too long"
@@ -188,6 +227,21 @@ msgstr ""
 msgid "Manage groups"
 msgstr ""
 
+msgid "Manual"
+msgstr ""
+
+msgid "Neighbor records"
+msgstr ""
+
+msgid "Neighbor table"
+msgstr ""
+
+msgid "Network devices"
+msgstr ""
+
+msgid "Network interfaces"
+msgstr ""
+
 msgid "Network neighbor probe failed (FAILED)"
 msgstr ""
 
@@ -195,6 +249,15 @@ msgid "New group"
 msgstr ""
 
 msgid "New group name"
+msgstr ""
+
+msgid "No"
+msgstr ""
+
+msgid "No ICMP reply was received. The device may block Ping; this does not confirm it is offline."
+msgstr ""
+
+msgid "No Ping reply"
 msgstr ""
 
 msgid "No devices found. Refresh the list to try again."
@@ -210,6 +273,9 @@ msgid "No devices with unknown status"
 msgstr ""
 
 msgid "No hostname detected"
+msgstr ""
+
+msgid "No known IP address for this device"
 msgstr ""
 
 msgid "No offline devices"
@@ -236,10 +302,37 @@ msgstr ""
 msgid "Online devices"
 msgstr ""
 
+msgid "Online · Ping replied"
+msgstr ""
+
 msgid "Organize this device by purpose or location"
 msgstr ""
 
-msgid "Read-only"
+msgid "Other devices"
+msgstr ""
+
+msgid "Phones"
+msgstr ""
+
+msgid "Ping again"
+msgstr ""
+
+msgid "Ping could not be completed"
+msgstr ""
+
+msgid "Ping is unavailable"
+msgstr ""
+
+msgid "Ping output"
+msgstr ""
+
+msgid "Probe address: %s"
+msgstr ""
+
+msgid "Probe unavailable"
+msgstr ""
+
+msgid "Probing…"
 msgstr ""
 
 msgid "Read-only access"
@@ -278,10 +371,19 @@ msgstr ""
 msgid "Saved device not found in the current network"
 msgstr ""
 
-msgid "Saved record for \"%s\" deleted."
+msgid "Saved record"
+msgstr ""
+
+msgid "Saved record for \"%s\" cleared."
 msgstr ""
 
 msgid "Search names, IP, MAC, remarks or groups..."
+msgstr ""
+
+msgid "Sending one Ping from the router to this device."
+msgstr ""
+
+msgid "Smart home"
 msgstr ""
 
 msgid "Some device data could not be read. Unconfirmed devices are shown as unknown: %s"
@@ -290,16 +392,22 @@ msgstr ""
 msgid "Some discovery sources are unavailable"
 msgstr ""
 
+msgid "Status evidence"
+msgstr ""
+
 msgid "System hostname"
 msgstr ""
 
 msgid "The %d devices in this group will become ungrouped. Their names, MAC addresses and remarks will be preserved."
 msgstr ""
 
-msgid "The default hostname will be displayed. The saved record, remarks and group assignment will be removed."
+msgid "This group no longer exists"
 msgstr ""
 
-msgid "This group no longer exists"
+msgid "Type detection"
+msgstr ""
+
+msgid "Unable to read the kernel neighbor table"
 msgstr ""
 
 msgid "Unavailable"
@@ -314,6 +422,15 @@ msgstr ""
 msgid "Unknown device"
 msgstr ""
 
+msgid "View"
+msgstr ""
+
+msgid "Wi-Fi"
+msgstr ""
+
+msgid "Yes"
+msgstr ""
+
 msgid "e.g. AA:BB:CC:11:22:33"
 msgstr ""
 
@@ -324,19 +441,4 @@ msgid "e.g. Living room TV, work computer"
 msgstr ""
 
 msgid "e.g. Media devices, office devices"
-msgstr ""
-
-msgid "Smart home"
-msgstr ""
-
-msgid "Phones"
-msgstr ""
-
-msgid "Computers"
-msgstr ""
-
-msgid "Network devices"
-msgstr ""
-
-msgid "Other devices"
 msgstr ""

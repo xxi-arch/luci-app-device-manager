@@ -245,22 +245,17 @@ return baseclass.extend({
 			'class': 'dm-action-link ' + className,
 			'click': function(ev) {
 				ev.preventDefault();
-				action();
+				return action();
 			},
 			'keydown': function(ev) {
 				if (ev.key === ' ') {
 					ev.preventDefault();
-					action();
+					return action();
 				}
 			}
 		}, [ label ]);
-		const actions = self.readonly ? [ E('em', {}, [ i18n.t('Read-only') ]) ] : [
-			actionLink(i18n.t('Edit'), 'dm-action-edit', () => self.showEditModal(dev))
-		];
-
-		if (dev.isSaved && !self.readonly) {
-			actions.push(actionLink(i18n.t('Delete'), 'dm-action-delete', () => self.confirmDelete(dev)));
-		}
+		const actions = [ actionLink(i18n.t('View'), 'dm-action-detail', () => self.showDetailModal(dev)) ];
+		if (!self.readonly) actions.push(actionLink(i18n.t('Edit'), 'dm-action-edit', () => self.showEditModal(dev)));
 
 		return E('tr', { 'class': 'tr' }, [
 			E('td', { 'class': 'td dm-index-column' }, [ rowNumber == null ? '' : String(rowNumber) ]),
