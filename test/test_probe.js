@@ -32,6 +32,9 @@ ip() {
 uci() { return 1; }
 ping() {
     for argument in "$@"; do target="$argument"; done
+    case "$target" in
+        192.168.1.200|192.168.3.20) sleep "\${AUDIT_KNOWN_START_DELAY:-0}" ;;
+    esac
     printf 'start %s\\n' "$target" >> "$AUDIT_PING_LOG"
     sleep "$AUDIT_PING_DELAY"
     if [ -n "$AUDIT_ADVANCE" ]; then printf '%s.00 0.00\\n' "$AUDIT_ADVANCE" > "$AUDIT_CLOCK"; fi
@@ -52,7 +55,8 @@ ping() {
                     AUDIT_NODE: process.execPath,
                     AUDIT_JSON_ENCODER: path.join(root, 'test/helpers/json-encoder.js'),
                     AUDIT_JSON_LOG: path.join(directory, 'json-' + id),
-                    AUDIT_PING_LOG: log, AUDIT_PING_DELAY: '0.02', AUDIT_ADVANCE: '', AUDIT_CLOCK: clock
+                    AUDIT_PING_LOG: log, AUDIT_PING_DELAY: '0.02', AUDIT_KNOWN_START_DELAY: '0',
+                    AUDIT_ADVANCE: '', AUDIT_CLOCK: clock
                 }, extra)
             });
             let stdout = '', stderr = '';
@@ -85,12 +89,19 @@ for (const [command, prefix] of [['sh', []], ['busybox', ['sh']]]) {
         const seen = new Set();
         for (let pass = 0; pass < 4; pass++) {
             fs.writeFileSync(f.clock, `${100 + pass * 30}.00 0.00\n`);
-            const result = await f.run().done;
+            // Delay known-host children to expose assertions that depend on scheduling order.
+            const result = await f.run({ AUDIT_KNOWN_START_DELAY: '0.08' }).done;
             assert.equal(result.reply.ok, true); // Failed ICMP must still return the neighbor snapshot.
             const addresses = starts(result.log);
             assert.equal(addresses.length, 128);
             assert.equal(new Set(addresses).size, 128);
-            if (pass === 0) assert.deepEqual(addresses.slice(0, 2).sort(), ['192.168.1.200', '192.168.3.20']);
+            if (pass === 0) {
+                // Children may log in any order; the batch barrier preserves batch membership.
+                const firstBatch = ['192.168.1.200', '192.168.3.20',
+                    ...Array.from({ length: 14 }, (_, i) => `192.168.1.${i + 1}`)];
+                assert.deepEqual(addresses.slice(0, 16).sort(), firstBatch.sort(),
+                    'known hosts must be included in the first batch');
+            }
             if (pass === 1) assert.ok(addresses.every(ip => !seen.has(ip)), 'second pass must resume, not restart');
             addresses.forEach(ip => seen.add(ip));
             let active = 0, peak = 0;
