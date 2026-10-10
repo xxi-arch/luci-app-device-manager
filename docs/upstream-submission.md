@@ -10,6 +10,8 @@ Export reviewed package files into a fresh LuCI feature branch:
 ```sh
 git clone https://github.com/openwrt/luci.git /tmp/luci-device-manager-upstream
 git -C /tmp/luci-device-manager-upstream switch -c add-device-manager
+git -C /tmp/luci-device-manager-upstream config user.name "zhiyong zhang"
+git -C /tmp/luci-device-manager-upstream config user.email "zhang747@126.com"
 python3 -B tools/prepare-upstream.py /tmp/luci-device-manager-upstream
 git -C /tmp/luci-device-manager-upstream diff --check
 ```
@@ -41,14 +43,13 @@ Bound concurrent probes, scan duration and the shared scan cooldown.
 Use native LuCI message extraction and separately built translation packages.
 Include pinned Material Design Icons attribution and Apache-2.0 notices.
 
-Signed-off-by: zhang <zhang747@126.com>
+Signed-off-by: zhiyong zhang <zhang747@126.com>
 ```
 
-The author supplied `zhang` as the maintainer name and the existing Git email
-is `zhang747@126.com`. Before creating the actual commit, the author must ensure
-the identity meets the upstream real-name requirement. Existing contributor
-attribution must be preserved; no historical commits are rewritten by these
-tools.
+Submission commits use `zhiyong zhang <zhang747@126.com>` for the author,
+committer and Signed-off-by identity. Configure this identity locally in the
+LuCI checkout before committing, as shown above. Existing contributor
+attribution must be preserved; these tools do not rewrite historical commits.
 
 Suggested PR description:
 
