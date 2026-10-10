@@ -14,10 +14,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Checkout official LuCI reference
+        uses: actions/checkout@v4
+        with:
+          repository: openwrt/luci
+          ref: master
+          path: luci-reference
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
 
       - name: Validate JSON syntax
         run: |
@@ -37,7 +44,6 @@ jobs:
         run: |
           bash -n tools/deploy.sh
           sh -n root/etc/uci-defaults/80_device_manager
-          sh -n root/etc/uci-defaults/81_device_manager_i18n
           sh -n root/usr/libexec/rpcd/luci.device-manager
 
       - name: Run automated unit tests
@@ -47,5 +53,15 @@ jobs:
       - name: Validate translations and SDK resolution
         run: |
           msgfmt --check -o /tmp/device-manager.mo po/zh_Hans/device-manager.po
-          python3 -B tools/update-translations.py --check
+          python3 -B tools/update-translations.py --check --luci-dir luci-reference
           python3 -B -m unittest discover -s test -p 'test_*.py'
+
+      - name: Validate exported package with official LuCI ESLint
+        run: |
+          npm install --prefix luci-reference --ignore-scripts --no-audit --no-fund eslint@9
+          python3 -B tools/prepare-upstream.py luci-reference
+          cd luci-reference
+          ./node_modules/.bin/eslint applications/luci-app-device-manager
+
+      - name: Verify whitespace
+        run: git diff --check

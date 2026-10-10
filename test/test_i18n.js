@@ -1,88 +1,98 @@
 'use strict';
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const test = require('node:test');
-const { environment, loadModule, backend } = require('./helpers/runtime');
+const { environment, loadModule, backend, root } = require('./helpers/runtime');
 
-function context(setting, languages, initial = []) {
+function catalogue() {
+    const messages = {};
+    let key = '', value = '', field = '';
+    for (const line of (fs.readFileSync(path.join(root, 'po/zh_Hans/device-manager.po'), 'utf8') + '\n\n').split('\n')) {
+        if (line.startsWith('msgid ')) { key = JSON.parse(line.slice(6)); field = 'key'; }
+        else if (line.startsWith('msgstr ')) { value = JSON.parse(line.slice(7)); field = 'value'; }
+        else if (line.startsWith('"')) {
+            if (field === 'key') key += JSON.parse(line);
+            else if (field === 'value') value += JSON.parse(line);
+        } else if (!line.trim()) {
+            if (key && value) messages[key] = value;
+            key = ''; value = ''; field = '';
+        }
+    }
+    return messages;
+}
+function context(translate = text => text, initial = []) {
     const mocks = backend(initial);
-    mocks.replies['luci.device-manager.get_language'] = setting instanceof Error ? setting : { language: setting };
     const env = environment(Object.assign({}, mocks, {
-        window: { navigator: { languages, language: languages[0] }, localStorage: { getItem: () => null, setItem() {} } }
+        _: translate,
+        window: { navigator: { languages: ['zh-CN'] }, localStorage: { getItem: () => null, setItem() {} } }
     }));
-    const cache = new Map();
-    const i18n = loadModule('device-manager.i18n', env, cache);
-    const page = loadModule('view.device-manager.devices', env, cache);
-    return { mocks, env, page, i18n };
+    const page = loadModule('view.device-manager.devices', env);
+    return { mocks, env, page };
 }
 async function render(ctx) { return ctx.page.render(await ctx.page.load()); }
 function button(node, label) { return node.querySelectorAll('button').find(item => item.textContent === label); }
 
-test('automatic mode recognizes Chinese variants and ordered browser preferences', () => {
-    const ctx = context('auto', ['en-US']);
-    for (const tag of ['zh', 'zh-CN', 'zh_Hans', 'zh-Hant', 'zh-TW', 'zh-HK']) {
-        ctx.env.window.navigator.languages = [tag];
-        assert.equal(ctx.i18n.detectLanguage('auto'), 'zh', tag);
-    }
-    ctx.env.window.navigator.languages = ['fr-FR', 'en-GB', 'zh-CN'];
-    assert.equal(ctx.i18n.detectLanguage('auto'), 'en');
-    ctx.env.window.navigator.languages = ['fr-FR', 'zh-CN', 'en-GB'];
-    assert.equal(ctx.i18n.detectLanguage('auto'), 'zh');
-});
-test('explicit LuCI Chinese or English settings override the browser language', async () => {
-    const english = context('en', ['zh-CN']); await english.i18n.load();
-    assert.equal(english.i18n.t('Save'), 'Save');
-    const chinese = context('zh_cn', ['en-US']); await chinese.i18n.load();
-    assert.equal(chinese.i18n.t('Save'), '保存');
-    const englishHeader = (await render(english)).querySelectorAll('th').find(th => th.getAttribute('data-sort') === 'name');
-    const chineseHeader = (await render(chinese)).querySelectorAll('th').find(th => th.getAttribute('data-sort') === 'name');
-    assert.equal(englishHeader.querySelector('button').attrs.title, 'Click to sort by Device name');
-    assert.equal(chineseHeader.querySelector('button').attrs.title, '点击按设备名称排序');
-});
-test('Chinese page, status details, placeholders and dialogs work without a separate language package', async () => {
-    const mac = 'AA:BB:CC:11:22:33';
-    const ctx = context('auto', ['zh-CN'], [{ '.type': 'device', '.name': 'saved', mac, name: '客厅电视' }]);
+test('native LuCI catalogue translates the page, sort titles, types and dialogs', async () => {
+    const messages = catalogue();
+    const ctx = context(text => messages[text] || text, [
+        { '.type': 'device', '.name': 'saved', mac: 'AA:BB:CC:11:22:33', name: '客厅电视', type: 'tv' }
+    ]);
     const node = await render(ctx);
-    assert.ok(button(node, '刷新'));
-    assert.ok(button(node, '添加设备'));
-    assert.ok(button(node, '隐藏信息'));
-    assert.ok(node.querySelector('#dm-search-input').attrs.placeholder.startsWith('搜索'));
-    assert.match(ctx.page.devices[0].statusDetail, /已保存记录/);
+    assert.ok(button(node, messages['Refresh list']));
+    assert.ok(button(node, messages['Add device']));
+    assert.ok(button(node, messages['Hide info']));
+    assert.ok(button(node, messages['Scan LAN']));
+    const title = node.querySelectorAll('th').find(th => th.getAttribute('data-sort') === 'name').querySelector('button').attrs.title;
+    assert.equal(title, messages['Click to sort by %s'].format(messages['Device name']));
     ctx.page.showEditModal(ctx.page.devices[0]);
-    assert.equal(ctx.env.ui.modal.attrs.title, '编辑设备');
-    assert.ok(button(ctx.env.ui.modal, '保存'));
-    ctx.page.confirmDelete(ctx.page.devices[0]);
-    assert.equal(ctx.env.ui.modal.attrs.title, '清空记录');
-    ctx.page.showGroupModal();
-    assert.equal(ctx.env.ui.modal.attrs.title, '设备分组管理');
-    assert.ok(button(ctx.env.ui.modal, '添加分组'));
+    assert.equal(ctx.env.ui.modal.attrs.title, messages['Edit device']);
+    assert.ok(button(ctx.env.ui.modal, messages.Save));
+    assert.ok(ctx.env.ui.modal.querySelectorAll('option').some(option => option.textContent === messages.TV));
     assert.deepEqual(ctx.env.htmlSinks, []);
 });
-test('English page follows an explicit English setting even with Chinese browser/global translations', async () => {
-    const ctx = context('en', ['zh-CN']); ctx.env._ = text => '中文:' + text;
-    const node = await render(ctx);
-    assert.ok(button(node, 'Refresh list')); assert.ok(node.textContent.includes('LAN Device Management'));
-    assert.ok(!node.textContent.includes('局域网设备管理'));
+test('LuCI decides language without a browser override or custom language RPC', async () => {
+    for (const translate of [text => text, text => 'DE:' + text, text => '繁體:' + text]) {
+        const ctx = context(translate);
+        const node = await render(ctx);
+        assert.ok(button(node, translate('Refresh list')));
+        assert.ok(node.textContent.includes(translate('LAN Device Management')));
+        assert.ok(!ctx.mocks.state.calls.some(call => call.key.includes('get_language')));
+    }
 });
-test('language RPC failure falls back to the browser and does not prevent rendering', async () => {
-    const ctx = context(new Error('method unavailable'), ['zh-CN']);
-    const node = await render(ctx);
-    assert.ok(button(node, '刷新'));
-    assert.equal(ctx.mocks.state.commits, 0);
-});
-test('untouched default group names localize without modifying saved/custom names', async () => {
+test('legacy default group labels translate while custom metadata remains literal', async () => {
     const initial = [
         { '.type': 'group', '.name': 'smart_home', name: '智能家居' },
         { '.type': 'group', '.name': 'phone', name: 'My phones' },
         { '.type': 'group', '.name': 'grp_custom', name: '办公设备' }
     ];
-    const ctx = context('en', ['zh-CN'], initial);
+    const ctx = context(text => 'DE:' + text, initial);
     await render(ctx);
-    assert.deepEqual(ctx.page.groups.map(group => group.name), ['Smart home', 'My phones', '办公设备']);
+    assert.deepEqual(ctx.page.groups.map(group => group.name), ['DE:Smart home', 'My phones', '办公设备']);
     assert.deepEqual(ctx.mocks.state.saved, initial);
 });
-test('unknown strings and missing browser language fall back safely to English', async () => {
-    const ctx = context('auto', []); await ctx.i18n.load();
-    assert.equal(ctx.i18n.t('Save'), 'Save');
-    assert.equal(ctx.i18n.t('unrecognized message'), 'unrecognized message');
-    assert.equal(ctx.i18n.detectLanguage('de'), 'en');
+test('loading and refreshing never start active scans; the explicit button scans then refreshes', async () => {
+    const ctx = context(); const node = await render(ctx);
+    await ctx.page.refresh();
+    assert.equal(ctx.mocks.state.calls.filter(call => call.key.endsWith('.scan_devices')).length, 0);
+    await button(node, 'Scan LAN').click();
+    const keys = ctx.mocks.state.calls.map(call => call.key);
+    assert.equal(keys.filter(key => key.endsWith('.scan_devices')).length, 1);
+    assert.ok(keys.lastIndexOf('luci.device-manager.get_online_status') > keys.indexOf('luci.device-manager.scan_devices'));
+    assert.equal(button(node, 'Scan LAN').disabled, false);
+});
+test('read-only users cannot start scans and scan failures restore the control', async () => {
+    const ctx = context();
+    ctx.env.L.hasViewPermission = () => false;
+    const node = await render(ctx);
+    assert.equal(button(node, 'Scan LAN').disabled, true);
+    await ctx.page.scan();
+    assert.ok(!ctx.mocks.state.calls.some(call => call.key.endsWith('.scan_devices')));
+    ctx.env.L.hasViewPermission = () => true;
+    ctx.page.readonly = false;
+    const writable = ctx.page.render(await ctx.page.load());
+    ctx.mocks.replies['luci.device-manager.scan_devices'] = { ok: false };
+    await button(writable, 'Scan LAN').click();
+    assert.equal(button(writable, 'Scan LAN').disabled, false);
+    assert.match(ctx.env.notifications.at(-1).content.textContent, /Could not scan LAN devices/);
 });

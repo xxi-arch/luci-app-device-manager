@@ -1,5 +1,5 @@
+// SPDX-License-Identifier: MIT
 'use strict';
-'require device-manager.i18n as i18n';
 'require baseclass';
 'require rpc';
 'require uci';
@@ -10,6 +10,7 @@ const CONFIG = 'device_manager';
 const callHints = rpc.declare({ object: 'luci-rpc', method: 'getHostHints', reject: true });
 const callLeases = rpc.declare({ object: 'luci-rpc', method: 'getDHCPLeases', reject: true });
 const callNeighbors = rpc.declare({ object: 'luci.device-manager', method: 'get_online_status', reject: true });
+const callScan = rpc.declare({ object: 'luci.device-manager', method: 'scan_devices', reject: true });
 const callPing = rpc.declare({ object: 'luci.device-manager', method: 'ping_device', params: [ 'mac' ], reject: true });
 const callWireless = rpc.declare({ object: 'luci-rpc', method: 'getWirelessDevices', reject: true });
 const callAssoc = rpc.declare({ object: 'iwinfo', method: 'assoclist', params: [ 'device' ], reject: true });
@@ -17,7 +18,7 @@ const callCommit = rpc.declare({ object: 'uci', method: 'commit', params: [ 'con
 const callRevert = rpc.declare({ object: 'uci', method: 'revert', params: [ 'config' ], reject: true });
 
 function requireObject(value) {
-	if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(i18n.t('Invalid discovery response'));
+	if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(_('Invalid discovery response'));
 	return value;
 }
 
@@ -38,7 +39,7 @@ function wifiStations() {
 			}
 		}
 		return Promise.all(Array.from(interfaces).map(device => readSource(device, () => callAssoc(device).then(reply => {
-			if (!Array.isArray(requireObject(reply).results)) throw new Error(i18n.t('Invalid discovery response'));
+			if (!Array.isArray(requireObject(reply).results)) throw new Error(_('Invalid discovery response'));
 			return reply.results.map(station => ({ mac: station.mac, dev: device }));
 		})))).then(results => ({
 			stations: results.filter(result => result.ok).flatMap(result => result.value),
@@ -55,41 +56,48 @@ function reloadConfig() {
 
 function validateText(value, limit) {
 	const text = model.sanitizeInput(value);
-	if (text.length > limit) throw new Error(i18n.t('Input is too long'));
+	if (text.length > limit) throw new Error(_('Input is too long'));
 	return text;
 }
 
 function validateGroupName(name, exceptId) {
 	const text = validateText(name, 32);
-	if (!text) throw new Error(i18n.t('Enter a valid group name'));
+	if (!text) throw new Error(_('Enter a valid group name'));
 	if (uci.sections(CONFIG, 'group').some(group => group['.name'] !== exceptId && model.sanitizeInput(group.name) === text))
-		throw new Error(i18n.t('A group with this name already exists'));
+		throw new Error(_('A group with this name already exists'));
 	return text;
 }
 
 function requireGroup(id) {
-	if (!uci.sections(CONFIG, 'group').some(group => group['.name'] === id)) throw new Error(i18n.t('This group no longer exists'));
+	if (!uci.sections(CONFIG, 'group').some(group => group['.name'] === id)) throw new Error(_('This group no longer exists'));
 }
 
 return baseclass.extend({
+	scanDevices: function() {
+		if (L.hasViewPermission() !== true) return Promise.reject(new Error(_('Read-only access')));
+		return this.queue(() => callScan().then(reply => {
+			if (requireObject(reply).ok !== true)
+				throw new Error(_('LAN scanning is unavailable. Check the selected interfaces and probe dependencies.'));
+		}));
+	},
 	pingDevice: function(mac) {
 		const normalized = model.normalizeMac(mac);
-		if (!normalized) return Promise.reject(new Error(i18n.t('Enter a valid MAC address')));
+		if (!normalized) return Promise.reject(new Error(_('Enter a valid MAC address')));
 		return callPing(normalized).then(reply => {
 			const errors = {
-				'No known IP address for this device': i18n.t('No known IP address for this device'),
-				'Another device is being probed. Please retry.': i18n.t('Another device is being probed. Please retry.'),
-				'Ping is unavailable': i18n.t('Ping is unavailable'),
-				'Enter a valid MAC address': i18n.t('Enter a valid MAC address'),
-				'Unable to read the kernel neighbor table': i18n.t('Unable to read the kernel neighbor table')
+				'No known IP address for this device': _('No known IP address for this device'),
+				'Another device is being probed. Please retry.': _('Another device is being probed. Please retry.'),
+				'Ping is unavailable': _('Ping is unavailable'),
+				'Enter a valid MAC address': _('Enter a valid MAC address'),
+				'Unable to read the kernel neighbor table': _('Unable to read the kernel neighbor table')
 			};
 			if (requireObject(reply).ok !== true) {
-				const error = new Error(errors[reply.error] || i18n.t('Ping could not be completed'));
+				const error = new Error(errors[reply.error] || _('Ping could not be completed'));
 				error.output = typeof reply.output === 'string' ? reply.output : '';
 				throw error;
 			}
 			if (typeof reply.reachable !== 'boolean' || typeof reply.ip !== 'string' || typeof reply.output !== 'string')
-				throw new Error(i18n.t('Invalid discovery response'));
+				throw new Error(_('Invalid discovery response'));
 			return reply;
 		});
 	},
@@ -108,7 +116,7 @@ return baseclass.extend({
 				readSource('hints', () => callHints().then(requireObject)),
 				readSource('leases', () => callLeases().then(requireObject)),
 				readSource('neighbors', () => callNeighbors().then(reply => {
-					if (requireObject(reply).ok !== true || !Array.isArray(reply.neighbors)) throw new Error(reply.error || i18n.t('Invalid discovery response'));
+					if (requireObject(reply).ok !== true || !Array.isArray(reply.neighbors)) throw new Error(reply.error || _('Invalid discovery response'));
 					return reply;
 				})),
 				readSource('wifi', wifiStations),
@@ -138,7 +146,7 @@ return baseclass.extend({
 	},
 	mutate: function(change) {
 		return this.queue(() => {
-			if (L.hasViewPermission() !== true) throw new Error(i18n.t('Read-only access'));
+			if (L.hasViewPermission() !== true) throw new Error(_('Read-only access'));
 			let staged = false;
 			return this.recoverPending().then(reloadConfig).then(change).then(() => {
 				staged = true;
@@ -147,7 +155,7 @@ return baseclass.extend({
 				if (!staged) throw error;
 				this.rollbackPending = true;
 				return this.recoverPending().then(() => { throw error; }, rollbackError => {
-					throw new Error(i18n.t('%s; failed to discard pending changes: %s').format(error.message, rollbackError.message));
+					throw new Error(_('%s; failed to discard pending changes: %s').format(error.message, rollbackError.message));
 				});
 			}).finally(() => uci.unload(CONFIG));
 		});
@@ -155,13 +163,13 @@ return baseclass.extend({
 	saveDevice: function(mac, name, remark, group, type) {
 		return this.mutate(() => {
 			const normalized = model.normalizeMac(mac);
-			if (!normalized) throw new Error(i18n.t('Enter a valid MAC address'));
+			if (!normalized) throw new Error(_('Enter a valid MAC address'));
 			const deviceName = validateText(name, 64), deviceRemark = validateText(remark, 256);
 			if (group && group !== 'ungrouped') requireGroup(group);
 			const matches = uci.sections(CONFIG, 'device').filter(section => model.sectionMac(section) === normalized);
 			const sid = matches.length ? matches[matches.length - 1]['.name'] : model.getSectionId(normalized);
 			if (!matches.length) {
-				if (uci.get(CONFIG, sid)) throw new Error(i18n.t('A conflicting configuration record exists'));
+				if (uci.get(CONFIG, sid)) throw new Error(_('A conflicting configuration record exists'));
 				uci.add(CONFIG, 'device', sid);
 			}
 			for (const section of matches) if (section['.name'] !== sid) uci.remove(CONFIG, section['.name']);

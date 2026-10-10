@@ -26,7 +26,7 @@ ping6() { ping "$@"; }
         const id = sequence++;
         const log = path.join(directory, 'pings-' + id);
         return { log, options: { encoding: 'utf8', timeout: 10000, env: Object.assign({}, process.env, {
-            AUDIT_JSHN: path.join(root, 'test/helpers/jshn.sh'), AUDIT_NODE: process.execPath,
+            AUDIT_JSHN: process.env.TEST_JSHN_PATH || path.join(root, 'test/helpers/jshn.sh'), AUDIT_NODE: process.execPath,
             AUDIT_JSON_ENCODER: path.join(root, 'test/helpers/json-encoder.js'),
             AUDIT_JSON_LOG: path.join(directory, 'json-' + id), AUDIT_PING_LOG: log,
             AUDIT_NEIGH: '192.168.1.20 dev br-lan lladdr aa:bb:cc:11:22:33 REACHABLE',

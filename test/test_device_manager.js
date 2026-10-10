@@ -281,7 +281,7 @@ test('read-only views have no edit actions or writable dialogs and disable the t
     assert.equal(button(node, 'Edit'), undefined); assert.equal(button(node, 'Delete'), undefined);
     assert.equal(node.querySelectorAll('.dm-action-edit').length, 0);
     assert.equal(node.querySelectorAll('.dm-action-detail').length, 1);
-    assert.equal(button(node, '+ Add device').disabled, true); assert.equal(button(node, 'Manage groups').disabled, true);
+    assert.equal(button(node, 'Add device').disabled, true); assert.equal(button(node, 'Manage groups').disabled, true);
     ctx.page.showEditModal(null); ctx.page.showGroupModal(); assert.equal(ctx.env.ui.modal, null);
     assert.equal(ctx.page.handleSave, null); assert.equal(ctx.page.handleSaveApply, null); assert.equal(ctx.page.handleReset, null);
 });
@@ -365,8 +365,8 @@ test('switching a status tab preserves focus on the newly rendered tab', async (
 
 test('writable toolbar actions remain enabled under LuCI boolean attribute semantics', async () => {
     const ctx = pageContext([]); const node = await renderPage(ctx);
-    assert.equal(button(node, '+ Add device').disabled, false);
+    assert.equal(button(node, 'Add device').disabled, false);
     assert.equal(button(node, 'Manage groups').disabled, false);
-    await button(node, '+ Add device').click();
+    await button(node, 'Add device').click();
     assert.equal(ctx.env.ui.modal.attrs.title, 'Add device');
 });

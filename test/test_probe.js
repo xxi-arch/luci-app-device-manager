@@ -23,15 +23,33 @@ function fixture(t, command, prefix) {
         .replaceAll('/var/dhcp.leases', path.join(directory, 'leases'));
     const wrapper = `
 ip() {
-    if [ "$1" = -4 ]; then
-        printf '%s\\n' '192.168.1.0/24 dev br-lan scope link' '192.168.2.0/24 dev br-guest scope link'
+    if [ "$1" = -o ]; then
+        case "$6" in
+            br-lan) printf '%s\\n' "2: br-lan inet $AUDIT_LAN_CIDR scope global br-lan" ;;
+            br-guest) printf '%s\\n' "3: br-guest inet $AUDIT_GUEST_CIDR scope global br-guest" ;;
+        esac
+    elif [ "$1" = -4 ]; then
+        printf '%s\\n' '198.51.100.0/24 dev eth0 scope link'
     else
         printf '%s\\n' '192.168.1.200 dev br-lan lladdr aa:bb:cc:11:22:33 REACHABLE'
     fi
 }
-uci() { return 1; }
+uci() { printf '%s\\n' "$AUDIT_INTERFACES"; }
+ubus() {
+    [ "$AUDIT_NO_INTERFACE" = 1 ] && return 1
+    case "$2" in
+        network.interface.lan) printf '%s\\n' '{"l3_device":"br-lan"}' ;;
+        network.interface.guest) printf '%s\\n' '{"l3_device":"br-guest"}' ;;
+        *) return 1 ;;
+    esac
+}
 ping() {
-    for argument in "$@"; do target="$argument"; done
+    previous=""; interface=""
+    for argument in "$@"; do
+        [ "$previous" = -I ] && interface="$argument"
+        previous="$argument"; target="$argument"
+    done
+    case "$interface" in br-lan|br-guest) ;; *) return 2 ;; esac
     case "$target" in
         192.168.1.200|192.168.3.20) sleep "\${AUDIT_KNOWN_START_DELAY:-0}" ;;
     esac
@@ -46,17 +64,18 @@ ping() {
     return {
         clock,
         directory,
-        run(extra = {}) {
+        run(extra = {}, method = 'scan_devices') {
             const id = sequence++;
             const log = path.join(directory, 'pings-' + id);
-            const child = spawn(command, [...prefix, '-c', wrapper, 'probe-test', 'call', 'get_online_status'], {
+            const child = spawn(command, [...prefix, '-c', wrapper, 'probe-test', 'call', method], {
                 env: Object.assign({}, process.env, {
-                    AUDIT_JSHN: path.join(root, 'test/helpers/jshn.sh'),
+                    AUDIT_JSHN: process.env.TEST_JSHN_PATH || path.join(root, 'test/helpers/jshn.sh'),
                     AUDIT_NODE: process.execPath,
                     AUDIT_JSON_ENCODER: path.join(root, 'test/helpers/json-encoder.js'),
                     AUDIT_JSON_LOG: path.join(directory, 'json-' + id),
                     AUDIT_PING_LOG: log, AUDIT_PING_DELAY: '0.02', AUDIT_KNOWN_START_DELAY: '0',
-                    AUDIT_ADVANCE: '', AUDIT_CLOCK: clock
+                    AUDIT_ADVANCE: '', AUDIT_CLOCK: clock, AUDIT_INTERFACES: 'lan guest', AUDIT_NO_INTERFACE: '0',
+                    AUDIT_LAN_CIDR: '192.168.1.1/24', AUDIT_GUEST_CIDR: '192.168.2.1/24'
                 }, extra)
             });
             let stdout = '', stderr = '';
@@ -97,8 +116,8 @@ for (const [command, prefix] of [['sh', []], ['busybox', ['sh']]]) {
             assert.equal(new Set(addresses).size, 128);
             if (pass === 0) {
                 // Children may log in any order; the batch barrier preserves batch membership.
-                const firstBatch = ['192.168.1.200', '192.168.3.20',
-                    ...Array.from({ length: 14 }, (_, i) => `192.168.1.${i + 1}`)];
+                const firstBatch = ['192.168.1.200',
+                    ...Array.from({ length: 15 }, (_, i) => '192.168.1.' + (i + 2))];
                 assert.deepEqual(addresses.slice(0, 16).sort(), firstBatch.sort(),
                     'known hosts must be included in the first batch');
             }
@@ -115,7 +134,7 @@ for (const [command, prefix] of [['sh', []], ['busybox', ['sh']]]) {
             assert.equal(cooldown.reply.ok, true);
             assert.deepEqual(starts(cooldown.log), []);
         }
-        assert.equal(seen.size, 509, 'both /24 subnets plus the extra known host must eventually be scanned');
+        assert.equal(seen.size, 506, 'selected /24 subnets exclude router addresses and out-of-scope known hosts');
     });
 
     test(`${command}: overlapping RPCs share one scan and the lock is released afterwards`, { skip: !available }, async t => {
@@ -143,4 +162,48 @@ for (const [command, prefix] of [['sh', []], ['busybox', ['sh']]]) {
         fs.writeFileSync(f.clock, '130.00 0.00\n');
         assert.deepEqual(starts((await f.run().done).log), [], 'cooldown starts after the scan finishes');
     });
+    test(command + ': passive reads never probe and unavailable LANs never fall back to WAN', { skip: !available }, async t => {
+        const f = fixture(t, command, prefix);
+        const passive = await f.run({}, 'get_online_status').done;
+        assert.equal(passive.reply.ok, true);
+        assert.deepEqual(starts(passive.log), []);
+        const unavailable = await f.run({ AUDIT_NO_INTERFACE: '1' }).done;
+        assert.equal(unavailable.reply.ok, false);
+        assert.deepEqual(starts(unavailable.log), []);
+    });
+    test(command + ': /25 and /23 probes respect subnet boundaries and exclude router addresses', { skip: !available }, async t => {
+        for (const cidr of ['192.168.1.130/25', '192.168.1.1/23']) {
+            const f = fixture(t, command, prefix);
+            const result = await f.run({ AUDIT_INTERFACES: 'lan', AUDIT_LAN_CIDR: cidr }).done;
+            assert.equal(result.reply.ok, true);
+            const addresses = starts(result.log);
+            assert.ok(addresses.length > 0);
+            assert.ok(!addresses.includes(cidr.split('/')[0]));
+            assert.ok(!addresses.some(ip => ip.startsWith('198.51.100.') || ip.startsWith('192.168.3.')));
+            if (cidr.endsWith('/25')) {
+                assert.equal(addresses.length, 125);
+                assert.ok(addresses.every(ip => ip.startsWith('192.168.1.') && Number(ip.split('.')[3]) >= 129 && Number(ip.split('.')[3]) <= 254));
+            } else {
+                assert.ok(addresses.every(ip => ip.startsWith('192.168.0.') || ip.startsWith('192.168.1.')));
+            }
+        }
+    });
+    test(command + ': a /16 probes known LAN hosts only and ignores invalid interface names', { skip: !available }, async t => {
+        const f = fixture(t, command, prefix);
+        const result = await f.run({ AUDIT_INTERFACES: 'lan ../wan', AUDIT_LAN_CIDR: '192.168.1.1/16' }).done;
+        assert.equal(result.reply.ok, true);
+        assert.deepEqual(starts(result.log).sort(), ['192.168.1.200', '192.168.3.20']);
+    });
+
+    test(command + ': /31 addresses and disabled scanning do not expand to a /24', { skip: !available }, async t => {
+        const f = fixture(t, command, prefix);
+        const result = await f.run({ AUDIT_INTERFACES: 'lan', AUDIT_LAN_CIDR: '192.168.1.130/31' }).done;
+        assert.equal(result.reply.ok, true);
+        assert.deepEqual(starts(result.log), ['192.168.1.131']);
+        fs.writeFileSync(f.clock, '130.00 0.00\n');
+        const disabled = await f.run({ AUDIT_INTERFACES: '' }).done;
+        assert.equal(disabled.reply.ok, false);
+        assert.deepEqual(starts(disabled.log), []);
+    });
+
 }

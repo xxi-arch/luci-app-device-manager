@@ -131,7 +131,7 @@ if [[ ! -f "${PROJECT_ROOT}/root/usr/share/rpcd/acl.d/luci-app-device-manager.js
     exit 1
 fi
 
-for resource in model.js service.js preferences.js table.js device-dialog.js group-dialog.js i18n.js translations.js styles.css; do
+for resource in model.js service.js preferences.js table.js device-dialog.js group-dialog.js styles.css; do
     if [[ ! -f "${PROJECT_ROOT}/htdocs/luci-static/resources/device-manager/${resource}" ]]; then
         print_error "Missing frontend resource: device-manager/${resource}"
         exit 1
@@ -140,11 +140,6 @@ done
 
 if [[ ! -f "${PROJECT_ROOT}/root/usr/libexec/rpcd/luci.device-manager" || ! -f "${PROJECT_ROOT}/root/etc/uci-defaults/80_device_manager" ]]; then
     print_error "Missing rpcd helper or configuration initializer."
-    exit 1
-fi
-
-if [[ ! -f "${PROJECT_ROOT}/root/usr/lib/lua/luci/i18n/device-manager-builtin.zh-cn.lmo" || ! -f "${PROJECT_ROOT}/root/etc/uci-defaults/81_device_manager_i18n" ]]; then
-    print_error "Missing bundled Chinese translations or language initializer."
     exit 1
 fi
 
@@ -207,17 +202,11 @@ scp "${SCP_OPTS[@]}" \
     "${PROJECT_ROOT}/root/usr/share/rpcd/acl.d/luci-app-device-manager.json" \
     "${SSH_TARGET}:/usr/share/rpcd/acl.d/luci-app-device-manager.json"
 
-print_info "Deploying bundled Chinese translations..."
-scp "${SCP_OPTS[@]}" \
-    "${PROJECT_ROOT}/root/usr/lib/lua/luci/i18n/device-manager-builtin.zh-cn.lmo" \
-    "${SSH_TARGET}:/usr/lib/lua/luci/i18n/device-manager-builtin.zh-cn.lmo"
-scp "${SCP_OPTS[@]}" \
-    "${PROJECT_ROOT}/root/etc/uci-defaults/81_device_manager_i18n" \
-    "${SSH_TARGET}:/etc/uci-defaults/81_device_manager_i18n"
+# Native translations are installed as the matching luci-i18n package.
+# Remove files left by older development deployments without changing LuCI language.
 ssh "${SSH_OPTS[@]}" "${SSH_TARGET}" "
-    set -e
-    sh /etc/uci-defaults/81_device_manager_i18n
-    rm -f /etc/uci-defaults/81_device_manager_i18n
+    rm -f /www/luci-static/resources/device-manager/i18n.js /www/luci-static/resources/device-manager/translations.js
+    rm -f /usr/lib/lua/luci/i18n/device-manager-builtin.zh-cn.lmo /etc/uci-defaults/81_device_manager_i18n
 "
 
 if [[ -f "${PROJECT_ROOT}/root/usr/libexec/rpcd/luci.device-manager" ]]; then

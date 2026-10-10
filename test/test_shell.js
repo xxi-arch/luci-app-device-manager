@@ -20,7 +20,7 @@ function rpc(command, prefix, directory, neighbors, exit = '0', method = 'get_on
         'ping() { return 1; }\n' + source;
     return spawnSync(command, [...prefix, '-c', wrapper, 'luci.device-manager', 'call', method], { encoding: 'utf8', env: {
         ...process.env, AUDIT_NEIGH: neighbors, AUDIT_IP_EXIT: exit, AUDIT_LANGUAGE: language, AUDIT_UCI_EXIT: uciExit,
-        AUDIT_JSHN: path.join(root, 'test/helpers/jshn.sh'), AUDIT_NODE: process.execPath,
+        AUDIT_JSHN: process.env.TEST_JSHN_PATH || path.join(root, 'test/helpers/jshn.sh'), AUDIT_NODE: process.execPath,
         AUDIT_JSON_ENCODER: path.join(root, 'test/helpers/json-encoder.js'), AUDIT_JSON_LOG: path.join(directory, 'json.log')
     } });
 }
@@ -101,37 +101,11 @@ test('failed SSH connectivity prevents deployment', () => temporary(directory =>
     assert.doesNotMatch(fs.readFileSync(path.join(directory, 'commands.log'), 'utf8'), /scp:/);
 }));
 
-test('deployment always copies bundled Chinese translations without compiling on the host', () => temporary(directory => {
+test('development deployment uses native translations and removes legacy bundled resources', () => temporary(directory => {
     const result = deploy(directory, ['audit.invalid']);
     assert.equal(result.status, 0, result.stderr);
     const log = fs.readFileSync(path.join(directory, 'commands.log'), 'utf8');
-    assert.match(log, /device-manager-builtin.zh-cn.lmo/);
-    assert.match(log, /81_device_manager_i18n/);
-    assert.doesNotMatch(result.stdout, /po2lmo is unavailable/);
-}));
-
-test('language RPC reads the LuCI setting and falls back to auto when unset', () => temporary(directory => {
-    for (const language of ['en', 'zh_cn', 'auto']) {
-        const result = rpc('busybox', ['sh'], directory, '', '0', 'get_language', language);
-        assert.equal(result.status, 0, result.stderr);
-        assert.deepEqual(JSON.parse(result.stdout), { language });
-    }
-    const unset = rpc('busybox', ['sh'], directory, '', '0', 'get_language', '', '1');
-    assert.deepEqual(JSON.parse(unset.stdout), { language: 'auto' });
-}));
-test('language initializer registers Chinese without changing the selected LuCI language', () => temporary(directory => {
-    const source = fs.readFileSync(path.join(root, 'root/etc/uci-defaults/81_device_manager_i18n'), 'utf8');
-    const wrapper = 'uci() { printf "%s\\n" "$*" >> "$AUDIT_UCI_LOG"; if [ "$1" = -q ] && [ "$3" = luci.languages.zh_cn ]; then return "$AUDIT_CHINESE_EXISTS"; fi; return 0; }\n' + source;
-    const log = path.join(directory, 'language.log');
-    for (const exists of ['1', '0']) {
-        const result = spawnSync('busybox', ['sh', '-c', wrapper], { encoding: 'utf8', env: {
-            ...process.env, AUDIT_UCI_LOG: log, AUDIT_CHINESE_EXISTS: exists
-        } });
-        assert.equal(result.status, 0, result.stderr);
-        const calls = fs.readFileSync(log, 'utf8');
-        assert.doesNotMatch(calls, /luci.main.lang/);
-        if (exists === '1') assert.match(calls, /set luci.languages.zh_cn=/);
-        else assert.doesNotMatch(calls, /set /);
-        fs.unlinkSync(log);
-    }
+    assert.match(log, /rm -f .*device-manager-builtin.zh-cn.lmo/);
+    assert.doesNotMatch(log, /scp:.*device-manager-builtin/);
+    assert.match(log, /i18n.js.*translations.js/);
 }));

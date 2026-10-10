@@ -5,6 +5,7 @@ import json
 import pathlib
 import re
 import tempfile
+import subprocess
 import unittest
 from unittest.mock import patch
 
@@ -42,16 +43,44 @@ class SDKTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "No checksum"):
                 SDK.resolve("24.10.0", "x86/64")
 
-    def test_catalogues_cover_every_actual_source_and_menu_string(self):
+    def test_catalogues_cover_native_extracted_messages_including_menu_and_acl(self):
+        def ids(content):
+            result = set()
+            key = None
+            for line in content.splitlines():
+                if line.startswith("msgid "):
+                    key = json.loads(line[6:])
+                elif key is not None and line.startswith('"'):
+                    key += json.loads(line)
+                elif line.startswith("msgstr "):
+                    if key:
+                        result.add(re.sub(r" +", " ", key.strip()))
+                    key = None
+            return result
         strings = set()
         for file in (ROOT / "htdocs").rglob("*.js"):
-            strings.update(re.findall(r"(?:_|i18n\.t)\('([^']*)'\)", file.read_text()))
-        menu = json.loads((ROOT / "root/usr/share/luci/menu.d/luci-app-device-manager.json").read_text())
-        strings.update(item["title"] for item in menu.values())
+            extracted = subprocess.run(["xgettext", "--from-code=UTF-8", "--language=JavaScript",
+                                        "--keyword=_:1", "--keyword=N_:2,3", "--no-wrap", "-o", "-", "-"],
+                                       input=file.read_text(), capture_output=True, text=True, check=True).stdout
+            strings.update(ids(extracted))
+        for directory in ["root/usr/share/luci/menu.d", "root/usr/share/rpcd/acl.d"]:
+            for file in (ROOT / directory).glob("*.json"):
+                strings.update(re.findall(r'"(?:title|description)"\s*:\s*"([^"]+)"', file.read_text()))
         for file in [ROOT / "po/templates/device-manager.pot", ROOT / "po/zh_Hans/device-manager.po"]:
-            catalogue = {json.loads(line[6:]) for line in file.read_text().splitlines() if line.startswith("msgid ")}
-            catalogue.discard("")
-            self.assertEqual(catalogue, strings)
+            self.assertEqual(ids(file.read_text()), strings)
+
+    def test_snapshot_sdk_uses_snapshot_directory_and_unversioned_sdk_name(self):
+        filename = "openwrt-sdk-x86-64_gcc-14_musl.Linux-x86_64.tar.zst"
+        checksum = "b" * 64
+        with patch.object(SDK, "urlopen", side_effect=[
+            io.BytesIO(f'<a href="{filename}">SDK</a>'.encode()),
+            io.BytesIO(f"{checksum} *{filename}\n".encode())
+        ]) as fetch:
+            url, sha = SDK.resolve("SNAPSHOT", "x86/64")
+            self.assertEqual(url, f"https://downloads.openwrt.org/snapshots/targets/x86/64/{filename}")
+            self.assertEqual(sha, checksum)
+            self.assertEqual(fetch.call_args_list[0].args[0],
+                             "https://downloads.openwrt.org/snapshots/targets/x86/64/")
 
     def test_selected_configuration_preserves_target_and_disables_sdk_all_defaults(self):
         spec = importlib.util.spec_from_file_location("configure_sdk", ROOT / "tools/configure-sdk.py")
@@ -74,6 +103,31 @@ class SDKTests(unittest.TestCase):
             self.assertEqual((directory / ".config").read_text(), result)
             with self.assertRaises(ValueError):
                 configure.configure(directory / "not-an-sdk")
+
+    def test_upstream_export_is_bounded_and_preserves_existing_checkout(self):
+        spec = importlib.util.spec_from_file_location("prepare_upstream", ROOT / "tools/prepare-upstream.py")
+        export = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(export)
+        with tempfile.TemporaryDirectory() as tmp:
+            checkout = pathlib.Path(tmp)
+            (checkout / "luci.mk").touch()
+            target = export.prepare(checkout)
+            self.assertTrue((target / "htdocs").is_dir())
+            self.assertIn("include ../../luci.mk", (target / "Makefile").read_text())
+            self.assertNotIn("feeds/luci/luci.mk", (target / "Makefile").read_text())
+            for name in [".github", "tools", "test", "device-icons"]:
+                self.assertFalse((target / name).exists())
+            self.assertFalse((target / "docs/upstream-submission.md").exists())
+            (target / "user-sentinel").write_text("preserve")
+            with self.assertRaises(FileExistsError):
+                export.prepare(checkout)
+            self.assertEqual((target / "user-sentinel").read_text(), "preserve")
+
+    def test_scan_acl_requires_write_permission_but_keeps_passive_discovery_readable(self):
+        acl = json.loads((ROOT / "root/usr/share/rpcd/acl.d/luci-app-device-manager.json").read_text())["luci-app-device-manager"]
+        self.assertIn("get_online_status", acl["read"]["ubus"]["luci.device-manager"])
+        self.assertNotIn("scan_devices", acl["read"]["ubus"]["luci.device-manager"])
+        self.assertIn("scan_devices", acl["write"]["ubus"]["luci.device-manager"])
 
 
 if __name__ == "__main__":

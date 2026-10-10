@@ -21,38 +21,27 @@ function pageContext(initial = []) {
 	const mocks = backend(initial);
 	const env = environment(mocks);
 	const cache = new Map();
-	const i18n = loadModule('device-manager.i18n', env, cache);
 	const model = loadModule('device-manager.model', env, cache);
 	const service = loadModule('device-manager.service', env, cache);
 	const page = loadModule('view.device-manager.devices', env, cache);
 	return Object.assign({ env, page, model, service }, mocks);
 }
 
-test('all 29 MDI device icons are present in device-icons/ and web resource directories', () => {
-	const dir1 = path.join(root, 'device-icons');
-	const dir2 = path.join(root, 'htdocs/luci-static/resources/device-manager/device-icons');
-
-	assert.equal(fs.existsSync(dir1), true);
-	assert.equal(fs.existsSync(dir2), true);
-
-	for (const icon of EXPECTED_ICONS) {
-		const file1 = path.join(dir1, icon);
-		const file2 = path.join(dir2, icon);
-
-		assert.equal(fs.existsSync(file1), true, `Missing ${file1}`);
-		assert.equal(fs.existsSync(file2), true, `Missing ${file2}`);
-
-		const content1 = fs.readFileSync(file1, 'utf8');
-		const content2 = fs.readFileSync(file2, 'utf8');
-
-		assert.match(content1, /<svg[^>]+xmlns="http:\/\/www\.w3\.org\/2000\/svg"/);
-		assert.match(content1, /<\/svg>/);
-		assert.match(content2, /<svg[^>]+xmlns="http:\/\/www\.w3\.org\/2000\/svg"/);
-		assert.match(content2, /<\/svg>/);
-	}
+test('all 29 distributed icons have one source and pinned attribution', () => {
+    const directory = path.join(root, 'htdocs/luci-static/resources/device-manager/device-icons');
+    const manifest = JSON.parse(fs.readFileSync(path.join(directory, 'sources.json')));
+    assert.match(manifest.revision, /^[a-f0-9]{40}$/);
+    for (const icon of EXPECTED_ICONS) {
+        const content = fs.readFileSync(path.join(directory, icon), 'utf8');
+        assert.match(content, /<svg[^>]+xmlns="http:\/\/www\.w3\.org\/2000\/svg"/);
+        assert.match(content, /<\/svg>/);
+        assert.ok(manifest.icons[icon].source.includes(manifest.revision));
+    }
+    assert.ok(fs.existsSync(path.join(directory, 'LICENSE')));
+    assert.ok(fs.existsSync(path.join(directory, 'NOTICE')));
 });
 
-test('detectDeviceType correctly classifies device types by MAC address OUI', () => {
+test('vendor hints remain conservative and randomized MACs do not imply a vendor', () => {
 	const env = environment();
 	const model = loadModule('device-manager.model', env);
 
@@ -60,22 +49,22 @@ test('detectDeviceType correctly classifies device types by MAC address OUI', ()
 		{ mac: '00:11:32:11:22:33', expected: 'nas' },
 		{ mac: '4C:FC:AA:11:22:33', expected: 'car' },
 		{ mac: '2C:26:17:11:22:33', expected: 'vr' },
-		{ mac: '00:1B:78:11:22:33', expected: 'printer' },
+		{ mac: '00:1B:78:11:22:33', expected: 'unknown' },
 		{ mac: '10:12:FB:11:22:33', expected: 'camera' },
 		{ mac: '00:09:BF:11:22:33', expected: 'game' },
 		{ mac: '00:0E:58:11:22:33', expected: 'speaker' },
-		{ mac: 'F4:F5:E8:11:22:33', expected: 'tvbox' },
-		{ mac: '00:1A:9A:11:22:33', expected: 'tv' },
-		{ mac: '18:FE:34:11:22:33', expected: 'plug' },
+		{ mac: 'F4:F5:E8:11:22:33', expected: 'unknown' },
+		{ mac: '00:1A:9A:11:22:33', expected: 'unknown' },
+		{ mac: '18:FE:34:11:22:33', expected: 'home' },
 		{ mac: '00:17:88:11:22:33', expected: 'light' },
-		{ mac: '54:EF:44:11:22:33', expected: 'sensor' },
-		{ mac: '10:2C:6B:11:22:33', expected: 'home' },
-		{ mac: '52:54:00:11:22:33', expected: 'server' },
-		{ mac: '00:15:6D:11:22:33', expected: 'ap' },
-		{ mac: '00:0F:E2:11:22:33', expected: 'switch' },
+		{ mac: '54:EF:44:11:22:33', expected: 'home' },
+		{ mac: '10:2C:6B:11:22:33', expected: 'unknown' },
+		{ mac: '52:54:00:11:22:33', expected: 'unknown' },
+		{ mac: '00:15:6D:11:22:33', expected: 'network' },
+		{ mac: '00:0F:E2:11:22:33', expected: 'network' },
 		{ mac: '00:0C:42:11:22:33', expected: 'router' },
 		{ mac: 'B8:27:EB:11:22:33', expected: 'computer' },
-		{ mac: 'F0:18:98:11:22:33', expected: 'phone' },
+		{ mac: 'F0:18:98:11:22:33', expected: 'unknown' },
 		{ mac: '12:34:56:78:9A:BC', expected: 'unknown' }
 	];
 
@@ -174,4 +163,15 @@ test('custom device type override can be saved and displayed', async () => {
 	// Test saving a new type via service
 	await ctx.service.saveDevice(customMac, 'Backup Server', 'Rack 1', 'ungrouped', 'nas');
 	assert.equal(ctx.state.saved[0].type, 'nas');
+});
+
+test('ambiguous short tokens and general vendors do not override meaningful device names', () => {
+    const model = loadModule('device-manager.model', environment());
+    for (const [name, expected] of [
+        ['switch', 'switch'], ['gateway', 'router'], ['Cambridge-PC', 'computer'],
+        ['spring', 'unknown'], ['bookmark', 'unknown'], ['canvas', 'unknown'],
+        ['nintendo-switch', 'game'], ['switch-PC', 'computer']
+    ]) assert.equal(model.detectDeviceType('12:34:56:78:9A:BC', name), expected, name);
+    assert.equal(model.detectDeviceType('02:11:32:11:22:33', ''), 'unknown');
+    assert.equal(model.detectDeviceType('02:11:32:11:22:33', 'synology'), 'nas');
 });

@@ -1,5 +1,5 @@
+// SPDX-License-Identifier: MIT
 'use strict';
-'require device-manager.i18n as i18n';
 'require baseclass';
 'require ui';
 'require device-manager.model as model';
@@ -25,17 +25,17 @@ return baseclass.extend({
 				'class': 'btn cbi-button cbi-button-neutral',
 				'style': 'margin-right:6px;',
 				'click': function() { self.promptRenameGroup(g); }
-			}, [ i18n.t('Rename') ]);
+			}, [ _('Rename') ]);
 
 			const btnDelete = E('button', { 'type': 'button',
 				'class': 'btn cbi-button cbi-button-remove',
 				'click': function() { self.confirmDeleteGroup(g, count); }
-			}, [ i18n.t('Delete') ]);
+			}, [ _('Delete') ]);
 
 			return E('tr', { 'class': 'tr' }, [
 				E('td', { 'class': 'td', 'style': 'font-weight:bold;' }, [ g.name ]),
 				E('td', { 'class': 'td' }, E('code', {}, [ g.id ])),
-				E('td', { 'class': 'td' }, [ i18n.t('%d devices').format(count) ]),
+				E('td', { 'class': 'td' }, [ _('%d devices').format(count) ]),
 				E('td', { 'class': 'td', 'style': 'text-align:right;' }, [ btnRename, btnDelete ])
 			]);
 		});
@@ -43,7 +43,7 @@ return baseclass.extend({
 		const newGroupInput = E('input', {
 			'type': 'text',
 			'class': 'cbi-input-text',
-			'placeholder': i18n.t('e.g. Media devices, office devices'),
+			'placeholder': _('e.g. Media devices, office devices'),
 			'maxlength': 32,
 			'style': 'width:240px; margin-right:8px;'
 		});
@@ -59,7 +59,7 @@ return baseclass.extend({
 				const button = ev.currentTarget;
 				const name = model.sanitizeInput(newGroupInput.value);
 				if (!name) {
-					errorDiv.textContent = i18n.t('Enter a valid group name');
+					errorDiv.textContent = _('Enter a valid group name');
 					errorDiv.style.display = 'block';
 					newGroupInput.focus();
 					return;
@@ -67,7 +67,7 @@ return baseclass.extend({
 
 				// Check duplicate name
 				if (self.groups.some(g => g.name === name)) {
-					errorDiv.textContent = i18n.t('A group with this name already exists');
+					errorDiv.textContent = _('A group with this name already exists');
 					errorDiv.style.display = 'block';
 					newGroupInput.focus();
 					return;
@@ -79,13 +79,13 @@ return baseclass.extend({
 				return self.handleAddGroup(name)
 					.then(function() {
 						ui.hideModal();
-						ui.addNotification(null, E('p', [ i18n.t('Group "%s" created.').format(name) ]), 'info');
+						ui.addNotification(null, E('p', [ _('Group "%s" created.').format(name) ]), 'info');
 						return self.refresh().then(function() {
 							self.showGroupModal();
 						});
 					})
 					.catch(function(err) {
-						errorDiv.textContent = i18n.t('Could not create group: %s').format(err.message || err);
+						errorDiv.textContent = _('Could not create group: %s').format(err.message || err);
 						errorDiv.style.display = 'block';
 					})
 					.finally(function() {
@@ -93,26 +93,26 @@ return baseclass.extend({
 						button.disabled = false;
 					});
 			}
-		}, [ i18n.t('Add group') ]);
+		}, [ _('Add group') ]);
 
-		ui.showModal(i18n.t('Device groups'), [
+		ui.showModal(_('Device groups'), [
 			E('div', { 'class': 'cbi-section' }, [
 				errorDiv,
 				E('table', { 'class': 'table', 'style': 'width:100%; margin-bottom:20px;' }, [
 					E('tr', { 'class': 'tr table-titles' }, [
-						E('th', { 'class': 'th' }, [ i18n.t('Group name') ]),
-						E('th', { 'class': 'th' }, [ i18n.t('Group ID') ]),
-						E('th', { 'class': 'th' }, [ i18n.t('Device count') ]),
-						E('th', { 'class': 'th', 'style': 'text-align:right;' }, [ i18n.t('Actions') ])
+						E('th', { 'class': 'th' }, [ _('Group name') ]),
+						E('th', { 'class': 'th' }, [ _('Group ID') ]),
+						E('th', { 'class': 'th' }, [ _('Device count') ]),
+						E('th', { 'class': 'th', 'style': 'text-align:right;' }, [ _('Actions') ])
 					]),
 					E('tbody', {}, groupRows)
 				]),
 				E('div', { 'class': 'cbi-value', 'style': 'padding-top:10px; border-top:1px solid #eee;' }, [
-					E('label', { 'class': 'cbi-value-title' }, [ i18n.t('New group') ]),
+					E('label', { 'class': 'cbi-value-title' }, [ _('New group') ]),
 					E('div', { 'class': 'cbi-value-field' }, [
 						newGroupInput,
 						btnAddGroup,
-						E('div', { 'class': 'cbi-value-description' }, [ i18n.t('Group names support Unicode text and common symbols') ])
+						E('div', { 'class': 'cbi-value-description' }, [ _('Group names support Unicode text and common symbols') ])
 					])
 				])
 			]),
@@ -120,7 +120,7 @@ return baseclass.extend({
 				E('button', { 'type': 'button',
 					'class': 'btn cbi-button',
 					'click': ui.hideModal
-				}, [ i18n.t('Close') ])
+				}, [ _('Close') ])
 			])
 		]);
 	},
@@ -141,23 +141,23 @@ return baseclass.extend({
 			'style': 'display:none; margin-bottom:12px;'
 		});
 
-		ui.showModal(i18n.t('Rename group'), [
+		ui.showModal(_('Rename group'), [
 			E('div', { 'class': 'cbi-section' }, [
 				errorDiv,
 				E('div', { 'class': 'cbi-value' }, [
-					E('label', { 'class': 'cbi-value-title' }, [ i18n.t('Current group name') ]),
+					E('label', { 'class': 'cbi-value-title' }, [ _('Current group name') ]),
 					E('div', { 'class': 'cbi-value-field', 'style': 'padding-top:6px;' }, [ group.name ])
 				]),
 				E('div', { 'class': 'cbi-value' }, [
-					E('label', { 'class': 'cbi-value-title' }, [ i18n.t('New group name') ]),
+					E('label', { 'class': 'cbi-value-title' }, [ _('New group name') ]),
 					E('div', { 'class': 'cbi-value-field' }, [
 						nameInput,
-						E('div', { 'class': 'cbi-value-description' }, [ i18n.t('Renaming preserves the group ID and all device assignments') ])
+						E('div', { 'class': 'cbi-value-description' }, [ _('Renaming preserves the group ID and all device assignments') ])
 					])
 				])
 			]),
 			E('div', { 'class': 'button-row', 'style': 'margin-top:20px; text-align:right;' }, [
-				E('button', { 'type': 'button', 'class': 'btn cbi-button', 'click': function() { self.showGroupModal(); } }, [ i18n.t('Cancel') ]),
+				E('button', { 'type': 'button', 'class': 'btn cbi-button', 'click': function() { self.showGroupModal(); } }, [ _('Cancel') ]),
 				' ',
 				E('button', { 'type': 'button',
 					'class': 'btn cbi-button cbi-button-positive',
@@ -165,7 +165,7 @@ return baseclass.extend({
 						const button = ev.currentTarget;
 						const newName = model.sanitizeInput(nameInput.value);
 						if (!newName) {
-							errorDiv.textContent = i18n.t('Enter a valid group name');
+							errorDiv.textContent = _('Enter a valid group name');
 							errorDiv.style.display = 'block';
 							nameInput.focus();
 							return;
@@ -181,13 +181,13 @@ return baseclass.extend({
 
 						return self.handleRenameGroup(group.id, newName)
 							.then(function() {
-								ui.addNotification(null, E('p', [ i18n.t('Group renamed to "%s".').format(newName) ]), 'info');
+								ui.addNotification(null, E('p', [ _('Group renamed to "%s".').format(newName) ]), 'info');
 								return self.refresh().then(function() {
 									self.showGroupModal();
 								});
 							})
 							.catch(function(err) {
-								errorDiv.textContent = i18n.t('Rename failed: %s').format(err.message || err);
+								errorDiv.textContent = _('Rename failed: %s').format(err.message || err);
 								errorDiv.style.display = 'block';
 							})
 							.finally(function() {
@@ -195,7 +195,7 @@ return baseclass.extend({
 								button.disabled = false;
 							});
 					}
-				}, [ i18n.t('Save changes') ])
+				}, [ _('Save changes') ])
 			])
 		]);
 	},
@@ -204,11 +204,11 @@ return baseclass.extend({
 		if (this.readonly) return;
 		const self = this;
 
-		ui.showModal(i18n.t('Delete group'), [
-			E('p', {}, [ i18n.t('Delete group "%s"?').format(group.name) ]),
-			E('p', { 'class': 'cbi-value-description' }, [ i18n.t('The %d devices in this group will become ungrouped. Their names, MAC addresses and remarks will be preserved.').format(deviceCount) ]),
+		ui.showModal(_('Delete group'), [
+			E('p', {}, [ _('Delete group "%s"?').format(group.name) ]),
+			E('p', { 'class': 'cbi-value-description' }, [ _('The %d devices in this group will become ungrouped. Their names, MAC addresses and remarks will be preserved.').format(deviceCount) ]),
 			E('div', { 'class': 'button-row', 'style': 'margin-top:20px; text-align:right;' }, [
-				E('button', { 'type': 'button', 'class': 'btn cbi-button', 'click': function() { self.showGroupModal(); } }, [ i18n.t('Cancel') ]),
+				E('button', { 'type': 'button', 'class': 'btn cbi-button', 'click': function() { self.showGroupModal(); } }, [ _('Cancel') ]),
 				' ',
 				E('button', { 'type': 'button',
 					'class': 'btn cbi-button cbi-button-remove',
@@ -219,20 +219,20 @@ return baseclass.extend({
 
 						return self.handleDeleteGroup(group.id)
 							.then(function() {
-								ui.addNotification(null, E('p', [ i18n.t('Group "%s" deleted. Its devices are now ungrouped.').format(group.name) ]), 'info');
+								ui.addNotification(null, E('p', [ _('Group "%s" deleted. Its devices are now ungrouped.').format(group.name) ]), 'info');
 								return self.refresh().then(function() {
 									self.showGroupModal();
 								});
 							})
 							.catch(function(err) {
 								ui.hideModal();
-								ui.addNotification(null, E('p', [ i18n.t('Could not delete group: %s').format(err.message || err) ]), 'danger');
+								ui.addNotification(null, E('p', [ _('Could not delete group: %s').format(err.message || err) ]), 'danger');
 							}).finally(function() {
 							button.classList.remove('spinning');
 							button.disabled = false;
 						});
 					}
-				}, [ i18n.t('Confirm delete') ])
+				}, [ _('Confirm delete') ])
 			])
 		]);
 	}

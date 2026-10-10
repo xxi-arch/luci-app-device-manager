@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: MIT
 'use strict';
-'require device-manager.i18n as i18n';
+/* global preferences */
 'require baseclass';
 'require device-manager.model as model';
 'require dom';
@@ -19,10 +20,10 @@ return baseclass.extend({
 		const unknown = total - online - offline;
 
 		const tabs = [
-			{ key: 'online',  label: i18n.t('Online devices'), count: online },
-			{ key: 'all',     label: i18n.t('All devices'), count: total },
-			{ key: 'offline', label: i18n.t('Offline devices'), count: offline },
-			{ key: 'unknown', label: i18n.t('Unknown'), count: unknown }
+			{ key: 'online',  label: _('Online devices'), count: online },
+			{ key: 'all',     label: _('All devices'), count: total },
+			{ key: 'offline', label: _('Offline devices'), count: offline },
+			{ key: 'unknown', label: _('Unknown'), count: unknown }
 		];
 
 		tabs.forEach(function(t) {
@@ -54,7 +55,7 @@ return baseclass.extend({
 
 		const self = this;
 		const options = [
-			E('option', { 'value': 'all' }, [ i18n.t('All groups') ])
+			E('option', { 'value': 'all' }, [ _('All groups') ])
 		];
 
 		// Count devices per group
@@ -78,7 +79,7 @@ return baseclass.extend({
 			options.push(opt);
 		}
 
-		const ungroupedOpt = E('option', { 'value': 'ungrouped' }, [ '%s (%d)'.format(i18n.t('Ungrouped'), ungroupedCount) ]);
+		const ungroupedOpt = E('option', { 'value': 'ungrouped' }, [ '%s (%d)'.format(_('Ungrouped'), ungroupedCount) ]);
 		if (self.activeGroup === 'ungrouped') ungroupedOpt.selected = true;
 		options.push(ungroupedOpt);
 
@@ -132,17 +133,17 @@ return baseclass.extend({
 			model.matchesDevice(device, this.groups, this.activeGroup, this.filterText));
 
 		if (filtered.length === 0) {
-			let emptyMsg = i18n.t('No devices found. Refresh the list to try again.');
+			let emptyMsg = _('No devices found. Refresh the list to try again.');
 			if (this.filterText)
-				emptyMsg = i18n.t('No devices match "%s"').format(this.filterText);
+				emptyMsg = _('No devices match "%s"').format(this.filterText);
 			else if (this.activeTab === 'online')
-				emptyMsg = i18n.t('No online devices');
+				emptyMsg = _('No online devices');
 			else if (this.activeTab === 'offline')
-				emptyMsg = i18n.t('No offline devices');
+				emptyMsg = _('No offline devices');
 			else if (this.activeTab === 'unknown')
-				emptyMsg = i18n.t('No devices with unknown status');
+				emptyMsg = _('No devices with unknown status');
 			else if (this.activeGroup !== 'all')
-				emptyMsg = i18n.t('No devices in this group');
+				emptyMsg = _('No devices in this group');
 
 			this.tableBodyNode.appendChild(E('tr', { 'class': 'tr' }, [
 				E('td', { 'class': 'td', 'colspan': 8, 'style': 'text-align:center; padding:36px 16px; color:#888;' }, [ emptyMsg ])
@@ -161,9 +162,8 @@ return baseclass.extend({
 		const self = this;
 
 		// 0. Device type icon column
-		const lang = i18n.detectLanguage();
 		const typeInfo = model.getTypeInfo(dev.type);
-		const typeLabel = model.getTypeLabel(dev.type, lang);
+		const typeLabel = model.getTypeLabel(dev.type);
 		const iconNode = E('span', {
 			'class': 'dm-device-icon-wrap',
 			'title': typeLabel
@@ -176,18 +176,18 @@ return baseclass.extend({
 		]);
 
 		// 1. Device name column
-		const displayName = dev.customName || dev.hostname || i18n.t('Unknown device');
+		const displayName = dev.customName || dev.hostname || _('Unknown device');
 
 		// Status dot with tooltip explanation (no text displayed)
 		let dotClass = 'dm-status-dot-unknown';
-		let statusLabel = i18n.t('Unknown');
+		let statusLabel = _('Unknown');
 
 		if (dev.status === 'online') {
 			dotClass = 'dm-status-dot-online';
-			statusLabel = i18n.t('Online');
+			statusLabel = _('Online');
 		} else if (dev.status === 'offline') {
 			dotClass = 'dm-status-dot-offline';
-			statusLabel = i18n.t('Offline');
+			statusLabel = _('Offline');
 		}
 
 		const statusTooltip = dev.statusDetail ? (statusLabel + ': ' + dev.statusDetail) : statusLabel;
@@ -205,7 +205,6 @@ return baseclass.extend({
 		if (dev.customName && dev.hostname && dev.customName !== dev.hostname) {
 			nameChildren.push(E('div', { 'class': 'dm-device-subtitle' }, [ dev.hostname ]));
 		}
-		// Catalogue references: i18n.t('Hostname: '); i18n.t('No hostname detected');
 
 		// 2. IP address column
 		const ipChildren = [];
@@ -254,8 +253,8 @@ return baseclass.extend({
 				}
 			}
 		}, [ label ]);
-		const actions = [ actionLink(i18n.t('View'), 'dm-action-detail', () => self.showDetailModal(dev)) ];
-		if (!self.readonly) actions.push(actionLink(i18n.t('Edit'), 'dm-action-edit', () => self.showEditModal(dev)));
+		const actions = [ actionLink(_('View'), 'dm-action-detail', () => self.showDetailModal(dev)) ];
+		if (!self.readonly) actions.push(actionLink(_('Edit'), 'dm-action-edit', () => self.showEditModal(dev)));
 
 		return E('tr', { 'class': 'tr' }, [
 			E('td', { 'class': 'td dm-index-column' }, [ rowNumber == null ? '' : String(rowNumber) ]),

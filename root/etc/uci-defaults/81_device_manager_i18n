@@ -1,6 +1,0 @@
-#!/bin/sh
-
-# Make Chinese discoverable in LuCI's automatic language mode. Keep the chosen language.
-uci -q get luci.languages >/dev/null || exit 0
-uci -q get luci.languages.zh_cn >/dev/null && exit 0
-uci set luci.languages.zh_cn='简体中文 (Chinese Simplified)' && uci commit luci

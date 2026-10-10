@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: MIT
 'use strict';
-'require device-manager.i18n as i18n';
+/* global deviceDialog, groupDialog, preferences, service, table */
 'require view';
 'require ui';
 'require device-manager.model as model';
@@ -24,7 +25,7 @@ return view.extend({
 	handleReset: null,
 
 	load: function() {
-		return i18n.load().then(() => Promise.all([ service.load(), preferences.load() ]))
+		return Promise.all([ service.load(), preferences.load() ])
 			.then(data => ({ snapshot: data[0], preferences: data[1] }));
 	},
 
@@ -48,7 +49,6 @@ return view.extend({
 		this.activeGroup = (savedView.group === 'all' || savedView.group === 'ungrouped' || this.getGroupById(savedView.group)) ? savedView.group : 'all';
 		this.maskInfo = Boolean(savedView.maskInfo);
 
-		const isZh = (i18n.language || i18n.detectLanguage()) === 'zh';
 		const sortHeader = (key, label, width, centered) => E('th', {
 			'class': 'th dm-sortable' + (centered ? ' dm-type-th' : ''),
 			'scope': 'col',
@@ -57,7 +57,7 @@ return view.extend({
 		}, [ E('button', {
 			'type': 'button',
 			'class': 'dm-header-content dm-sort-button',
-			'title': isZh ? '点击按' + label + '排序' : 'Click to sort by ' + label,
+			'title': _('Click to sort by %s').format(label),
 			'click': function() { self.handleSort(key); }
 		}, [
 			E('span', { 'class': 'dm-sort-label' }, [ label ]),
@@ -65,32 +65,32 @@ return view.extend({
 		]) ]);
 
 		const theadNode = E('thead', {}, [ E('tr', { 'class': 'tr table-titles' }, [
-			E('th', { 'class': 'th dm-index-column', 'scope': 'col' }, [
-				E('span', { 'class': 'dm-header-content' }, [ isZh ? '序号' : '#' ])
+				E('th', { 'class': 'th dm-index-column', 'scope': 'col', 'title': _('Row number') }, [
+					E('span', { 'class': 'dm-header-content' }, [ _('#') ])
 			]),
-			sortHeader('type', isZh ? '类型' : 'Type', '56px', true),
-			sortHeader('name', i18n.t('Device name'), '24%'),
-			sortHeader('ip', i18n.t('IP address'), '18%'),
-			sortHeader('mac', i18n.t('MAC address'), '18%'),
-			sortHeader('group', i18n.t('Group'), '14%'),
+			sortHeader('type', _('Type'), '56px', true),
+			sortHeader('name', _('Device name'), '24%'),
+			sortHeader('ip', _('IP address'), '18%'),
+			sortHeader('mac', _('MAC address'), '18%'),
+			sortHeader('group', _('Group'), '14%'),
 			E('th', { 'class': 'th', 'scope': 'col', 'style': 'width:14%;' }, [
-				E('span', { 'class': 'dm-header-content' }, [ i18n.t('Remarks') ])
+				E('span', { 'class': 'dm-header-content' }, [ _('Remarks') ])
 			]),
 			E('th', { 'class': 'th dm-actions-column', 'scope': 'col' }, [
-				E('span', { 'class': 'dm-header-content' }, [ i18n.t('Actions') ])
+				E('span', { 'class': 'dm-header-content' }, [ _('Actions') ])
 			])
 		]) ]);
 
 		const viewNode = E('div', { 'class': 'cbi-map' }, [
 			E('link', { 'rel': 'stylesheet', 'href': L.resource('device-manager/styles.css') }),
 
-			E('h2', {}, [ i18n.t('LAN Device Management') ]),
-			E('div', { 'class': 'cbi-map-descr' }, [ i18n.t('Discover network devices and save custom names, remarks and groups by MAC address.') ]),
+			E('h2', {}, [ _('LAN Device Management') ]),
+			E('div', { 'class': 'cbi-map-descr' }, [ _('Discover network devices and save custom names, remarks and groups by MAC address.') ]),
 
 			E('div', { 'id': 'dm-source-warning', 'class': 'alert-message warning dm-source-warning', 'style': 'display:none;' }),
 
 			// Row 1: Status Tabs
-			E('div', { 'class': 'dm-status-tabs', 'id': 'dm-tabs-container', 'role': 'tablist', 'aria-label': i18n.t('Device status') }),
+			E('div', { 'class': 'dm-status-tabs', 'id': 'dm-tabs-container', 'role': 'tablist', 'aria-label': _('Device status') }),
 
 			// Row 2: Controls Toolbar
 			E('div', { 'class': 'cbi-section dm-toolbar' }, [
@@ -99,7 +99,7 @@ return view.extend({
 						'type': 'text',
 						'id': 'dm-search-input',
 						'class': 'cbi-input-text',
-						'placeholder': i18n.t('Search names, IP, MAC, remarks or groups...'),
+						'placeholder': _('Search names, IP, MAC, remarks or groups...'),
 						'style': 'flex:1; min-width:200px; max-width:360px;',
 						'value': self.filterText,
 						'input': function(ev) {
@@ -123,22 +123,22 @@ return view.extend({
 						'class': 'cbi-button cbi-button-neutral',
 						'disabled': self.readonly || null,
 						'click': function() { self.showGroupModal(); }
-					}, [ i18n.t('Manage groups') ]),
+					}, [ _('Manage groups') ]),
 					E('button', { 'type': 'button',
 						'class': 'cbi-button cbi-button-action dm-btn-blue',
 						'disabled': self.readonly || null,
 						'click': function() { self.showEditModal(null); }
-					}, [ ((i18n.language || i18n.detectLanguage()) === 'zh' ? '添加设备' : i18n.t('+ Add device')) ]),
+					}, [ _('Add device') ]),
 					E('button', { 'type': 'button',
 						'class': 'cbi-button cbi-button-neutral',
 						'id': 'dm-btn-mask',
-						'title': ((i18n.language || i18n.detectLanguage()) === 'zh' ? '隐藏/显示 MAC 与 IPv6 地址' : 'Hide/Show MAC and IPv6'),
+						'title': _('Hide/Show MAC and IPv6'),
 						'click': function() {
 							self.maskInfo = !self.maskInfo;
 							preferences.save(self.activeTab, self.activeGroup, self.maskInfo);
 							self.updateView();
 						}
-					}, [ ((i18n.language || i18n.detectLanguage()) === 'zh' ? (self.maskInfo ? '显示信息' : '隐藏信息') : (self.maskInfo ? 'Show info' : 'Hide info')) ]),
+					}, [ (self.maskInfo ? _('Show info') : _('Hide info')) ]),
 					E('button', { 'type': 'button',
 						'class': 'cbi-button cbi-button-neutral',
 						'id': 'dm-btn-refresh',
@@ -151,9 +151,23 @@ return view.extend({
 								button.disabled = false;
 							});
 						}
-					}, [ ((i18n.language || i18n.detectLanguage()) === 'zh' ? '刷新' : i18n.t('Refresh list')) ])
+					}, [ _('Refresh list') ]),
+					E('button', { 'type': 'button',
+						'class': 'cbi-button cbi-button-neutral',
+						'id': 'dm-btn-scan',
+						'disabled': self.readonly || null,
+						'title': _('Probe devices on the configured LAN interfaces'),
+						'click': function(ev) {
+							const button = ev.currentTarget;
+							button.disabled = true;
+							button.classList.add('spinning');
+							return self.scan().finally(() => {
+								button.disabled = self.readonly;
+								button.classList.remove('spinning');
+							});
+						}
+					}, [ _('Scan LAN') ])
 				])
-				// Catalogue references: i18n.t('+ Add device'); i18n.t('Refresh list');
 			]),
 
 			// Row 3: Device Table
@@ -204,17 +218,22 @@ return view.extend({
 		this.renderGroupSelect();
 		this.updateSortHeaders();
 		if (this.maskBtnNode) {
-			const isZh = (i18n.language || i18n.detectLanguage()) === 'zh';
-			this.maskBtnNode.textContent = isZh
-				? (this.maskInfo ? '显示信息' : '隐藏信息')
-				: (this.maskInfo ? 'Show info' : 'Hide info');
+			this.maskBtnNode.textContent = this.maskInfo ? _('Show info') : _('Hide info');
 		}
 		this.renderTable();
 		if (this.warningNode) {
 			this.warningNode.textContent = this.sourceErrors.length
-				? i18n.t('Some device data could not be read. Unconfirmed devices are shown as unknown: %s').format(this.sourceErrors.join('; ')) : '';
+				? _('Some device data could not be read. Unconfirmed devices are shown as unknown: %s').format(this.sourceErrors.join('; ')) : '';
 			this.warningNode.style.display = this.sourceErrors.length ? '' : 'none';
 		}
+	},
+
+	scan: function() {
+		if (this.scanning) return this.scanning;
+		this.scanning = service.scanDevices().then(() => this.refresh()).catch(error => {
+			ui.addNotification(null, E('p', {}, [ _('Could not scan LAN devices: %s').format(error.message || error) ]), 'danger');
+		}).finally(() => { this.scanning = null; });
+		return this.scanning;
 	},
 
 	refresh: function() {
@@ -223,7 +242,7 @@ return view.extend({
 			this.acceptData(data);
 			this.updateView();
 		}).catch(error => {
-			ui.addNotification(null, E('p', {}, [ i18n.t('Could not refresh the device list: %s').format(error.message || error) ]), 'danger');
+			ui.addNotification(null, E('p', {}, [ _('Could not refresh the device list: %s').format(error.message || error) ]), 'danger');
 		}).finally(() => { this.refreshing = null; });
 		return this.refreshing;
 	}

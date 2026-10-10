@@ -126,7 +126,7 @@ function backend(initial = []) {
         'luci-rpc.getDHCPLeases': { dhcp_leases: [], dhcp6_leases: [] },
         'luci-rpc.getWirelessDevices': {},
         'luci.device-manager.get_online_status': { ok: true, neighbors: [] },
-        'luci.device-manager.get_language': { language: 'auto' },
+        'luci.device-manager.scan_devices': { ok: true },
         'luci.device-manager.ping_device': { ok: true, ip: '192.168.1.20', interface: 'br-lan', reachable: true, output: '1 packets transmitted, 1 packets received' },
         'iwinfo.assoclist': { results: [] }
     };

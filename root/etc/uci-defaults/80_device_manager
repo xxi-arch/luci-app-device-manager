@@ -1,4 +1,5 @@
 #!/bin/sh
+# SPDX-License-Identifier: MIT
 set -e
 
 # Existing configuration, including an intentionally empty file, is authoritative.
@@ -9,15 +10,15 @@ touch /etc/config/device_manager
 trap 'uci -q revert device_manager || :; rm -f /etc/config/device_manager' EXIT
 uci -q batch <<'EOF'
 set device_manager.smart_home=group
-set device_manager.smart_home.name='智能家居'
+set device_manager.smart_home.name='Smart home'
 set device_manager.phone=group
-set device_manager.phone.name='手机设备'
+set device_manager.phone.name='Phones'
 set device_manager.computer=group
-set device_manager.computer.name='电脑设备'
+set device_manager.computer.name='Computers'
 set device_manager.network=group
-set device_manager.network.name='网络设备'
+set device_manager.network.name='Network devices'
 set device_manager.other=group
-set device_manager.other.name='其他设备'
+set device_manager.other.name='Other devices'
 commit device_manager
 EOF
 trap - EXIT

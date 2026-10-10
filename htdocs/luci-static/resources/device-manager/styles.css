@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: MIT */
 .dm-status-tabs { display:flex; flex-wrap:wrap; margin:0 0 16px 0; padding:0; border-bottom:2px solid #e0e0e0; list-style:none; gap:6px; }
 .dm-status-tab { border:0; font-family:inherit; cursor:pointer; padding:8px 16px; border-radius:6px 6px 0 0; font-weight:500; font-size:14px; color:inherit; background:rgba(0,0,0,0.03); transition:all 0.15s ease; border-bottom:3px solid transparent; }
 .dm-status-tab:hover { background:rgba(0,0,0,0.06); color:inherit; }
