@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #
 # deploy.sh - Deploy luci-app-device-manager directly to an OpenWrt router for development/testing.
+# SSH authentication is performed once; all deployment commands reuse that connection.
 #
 # Usage:
 #   ./tools/deploy.sh [options] <target>
@@ -103,7 +104,7 @@ else
 fi
 
 # Check prerequisites
-for cmd in ssh scp; do
+for cmd in ssh scp mktemp; do
     if ! command -v "$cmd" &>/dev/null; then
         print_error "Required local command '$cmd' is not found in PATH."
         exit 1
@@ -147,13 +148,25 @@ if [[ ! -f "${PROJECT_ROOT}/root/usr/lib/lua/luci/i18n/device-manager-builtin.zh
     exit 1
 fi
 
-SSH_OPTS=(-p "${SSH_PORT}" -o BatchMode=no -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new)
-SCP_OPTS=(-P "${SSH_PORT}" -o BatchMode=no -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new)
+# Keep the control socket private and its path short enough for Unix socket limits.
+SSH_CONTROL_DIR="$(mktemp -d /tmp/luci-deploy.XXXXXX)"
+SSH_CONTROL_PATH="${SSH_CONTROL_DIR}/ssh"
+SSH_COMMON_OPTS=(-o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new -o "ControlPath=${SSH_CONTROL_PATH}")
+SSH_OPTS=(-p "${SSH_PORT}" "${SSH_COMMON_OPTS[@]}" -o ControlMaster=no -o BatchMode=yes)
+SCP_OPTS=(-P "${SSH_PORT}" "${SSH_COMMON_OPTS[@]}" -o ControlMaster=no -o BatchMode=yes)
+
+cleanup() {
+    ssh "${SSH_OPTS[@]}" -O exit "${SSH_TARGET}" >/dev/null 2>&1 || true
+    rm -rf -- "${SSH_CONTROL_DIR}"
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 print_info "Connecting to OpenWrt router at ${SSH_TARGET} (port: ${SSH_PORT})..."
 
-# Check router connectivity
-if ! ssh "${SSH_OPTS[@]}" "${SSH_TARGET}" "echo 'OpenWrt connection OK'" >/dev/null 2>&1; then
+# Authenticate once and keep the master connection open until cleanup.
+if ! ssh -p "${SSH_PORT}" "${SSH_COMMON_OPTS[@]}" -o BatchMode=no -o ControlPersist=no -M -N -f "${SSH_TARGET}"; then
     print_error "Failed to connect to ${SSH_TARGET} via SSH. Please check network, IP, port, and SSH key/password."
     exit 1
 fi
