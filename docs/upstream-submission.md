@@ -5,6 +5,10 @@ Target: `openwrt/luci`, branch `master`, directory
 
 The independent repository retains development tests, SDK build workflows and
 SSH deployment tooling. They are not copied to the upstream repository root.
+The configuration initializer lives under `tools/` for source deployments;
+packages ship `/etc/config/device_manager` directly. The exported README uses
+official-feed installation commands, while standalone build instructions stay
+in the independent repository.
 Export reviewed package files into a fresh LuCI feature branch:
 
 ```sh
@@ -68,11 +72,13 @@ Validation:
 - 33 RPC regressions passed with SDK-native jshn and isolated network inputs.
 - Official LuCI message extraction, gettext checks and ESLint passed.
 - Built main and Chinese language APKs in the official x86/64 SNAPSHOT SDK.
-- Built ip-tiny and ip-full variants and checked the resolved dependencies.
+- Verified official SNAPSHOT and 24.10.4 BusyBox ip/flock compatibility;
+  33 RPC regressions passed with each binary and SDK-native jshn.
+- Checked resolved dependencies without extra ip or flock packages.
 - Checked package license texts, configuration preservation metadata and LMO.
 
-Real-router installation, upgrades, account enforcement and UI acceptance
-remain unverified. GitHub Actions has not been run remotely.
+Real-router installation, upgrades, account enforcement, UI acceptance and
+a stable-release SDK build remain unverified.
 ```
 
 Review the recorded validation results before sending the PR.

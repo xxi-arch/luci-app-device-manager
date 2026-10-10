@@ -25,9 +25,11 @@ Type recognition is a best-effort display hint with a manual override; see
 
 本项目尚未合并到官方源。先用本仓库的 GitHub Actions 或 OpenWrt SDK 构建，再安装与目标系统版本匹配的本地包。
 
-The package requires `luci-base`, `rpcd-mod-file`, `rpcd-mod-iwinfo`,
-`jshn`, `flock`, and either `ip-tiny` or the selected `ip-full`.
-Do not install both IP variants. SDK builds resolve these dependencies.
+The package requires `luci-base`, `rpcd-mod-iwinfo` and `jshn`.
+Standard OpenWrt BusyBox provides the required `ip` and `flock` commands;
+`luci-base` supplies the file RPC dependency. Custom firmware that disables
+these BusyBox applets must enable them or install `ip-tiny` (or `ip-full`)
+and `flock` separately.
 
 OpenWrt with opkg, in the directory containing the build artifacts:
 
@@ -124,7 +126,7 @@ repository. No tool commits, pushes or rewrites existing contributor history.
    batch scanning are denied by the RPC ACL even when called directly.
 4. On isolated `/25` and `/23` LANs, inspect packet captures while scanning;
    verify interface binding, subnet boundaries, concurrency and cooldown.
-5. Test a system with `ip-tiny` and one with `ip-full`, an unavailable LAN,
+5. Test standard BusyBox `ip` and optionally `ip-tiny`/`ip-full`, an unavailable LAN,
    IPv6-only details, Wi-Fi VLAN stations and incomplete discovery sources.
 6. Check the stock Bootstrap/OpenWrt themes on desktop and mobile, including
    dark mode, keyboard controls and dialogs.

@@ -46,7 +46,7 @@ for (const [command, prefix] of [['sh', []], ['busybox', ['sh']]]) {
 function initialize(directory, content, failure = false) {
     const config = path.join(directory, 'config');
     if (content !== null) fs.writeFileSync(config, content);
-    const source = fs.readFileSync(path.join(root, 'root/etc/uci-defaults/80_device_manager'), 'utf8').replaceAll('/etc/config/device_manager', config);
+    const source = fs.readFileSync(path.join(root, 'tools/initialize-config.sh'), 'utf8').replaceAll('/etc/config/device_manager', config);
     const wrapper = 'uci() { printf "%s\\n" "$*" >> "$AUDIT_UCI_LOG"; if [ "$2" = batch ]; then cat >> "$AUDIT_UCI_LOG"; fi; return "$AUDIT_UCI_EXIT"; }\n' + source;
     const result = spawnSync('busybox', ['sh', '-c', wrapper], { encoding: 'utf8', env: {
         ...process.env, AUDIT_UCI_LOG: path.join(directory, 'uci.log'), AUDIT_UCI_EXIT: failure ? '1' : '0'

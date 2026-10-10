@@ -43,7 +43,7 @@ jobs:
       - name: Validate Shell script syntax
         run: |
           bash -n tools/deploy.sh
-          sh -n root/etc/uci-defaults/80_device_manager
+          sh -n tools/initialize-config.sh
           sh -n root/usr/libexec/rpcd/luci.device-manager
 
       - name: Run automated unit tests

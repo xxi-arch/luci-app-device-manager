@@ -59,7 +59,7 @@ jobs:
           python3 ../package-src/tools/prepare-upstream.py feeds/luci
           ./scripts/feeds update -i luci
           ./scripts/feeds install luci-app-device-manager
-          ./scripts/feeds install luci-base rpcd-mod-file rpcd-mod-iwinfo ip-tiny jshn
+          ./scripts/feeds install luci-base rpcd-mod-iwinfo jshn
           python3 ../package-src/tools/configure-sdk.py .
           make defconfig
 

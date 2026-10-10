@@ -3,7 +3,7 @@
 set -e
 
 # Existing configuration, including an intentionally empty file, is authoritative.
-# Packaged installations already ship the defaults in /etc/config/device_manager.
+# Development deployment only; packages ship /etc/config/device_manager directly.
 [ -e /etc/config/device_manager ] && exit 0
 
 touch /etc/config/device_manager

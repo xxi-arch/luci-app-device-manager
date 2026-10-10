@@ -115,6 +115,13 @@ class SDKTests(unittest.TestCase):
             self.assertTrue((target / "htdocs").is_dir())
             self.assertIn("include ../../luci.mk", (target / "Makefile").read_text())
             self.assertNotIn("feeds/luci/luci.mk", (target / "Makefile").read_text())
+            self.assertTrue((target / "root/etc/config/device_manager").is_file())
+            self.assertFalse((target / "root/etc/uci-defaults/80_device_manager").exists())
+            readme = (target / "README.md").read_text()
+            self.assertIn("opkg install luci-app-device-manager\n", readme)
+            self.assertIn("apk add luci-app-device-manager\n", readme)
+            for obsolete in ["尚未合并到官方源", "--allow-untrusted", "GitHub Actions", "workflow 默认"]:
+                self.assertNotIn(obsolete, readme)
             for name in [".github", "tools", "test", "device-icons"]:
                 self.assertFalse((target / name).exists())
             self.assertFalse((target / "docs/upstream-submission.md").exists())

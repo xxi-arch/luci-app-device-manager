@@ -20,6 +20,32 @@ def prepare(directory):
     for name in ["LICENSE"]:
         shutil.copyfile(ROOT / name, target / name)
     readme = (ROOT / "README.md").read_text()
+    start = readme.index("## 安装 / Installation")
+    end = readme.index("## 扫描范围 / Scan scope", start)
+    readme = readme[:start] + (
+        "## Installation\n\n"
+        "On OpenWrt releases whose feeds include this application, install it\n"
+        "from the configured package repositories.\n\n"
+        "For systems using opkg:\n\n"
+        "```sh\n"
+        "opkg update\n"
+        "opkg install luci-app-device-manager\n"
+        "opkg install luci-i18n-device-manager-zh-cn\n"
+        "```\n\n"
+        "For systems using apk:\n\n"
+        "```sh\n"
+        "apk update\n"
+        "apk add luci-app-device-manager\n"
+        "apk add luci-i18n-device-manager-zh-cn\n"
+        "```\n\n"
+        "The Chinese language package is optional. Without a translation, LuCI\n"
+        "displays the English source messages. Reload LuCI after installation\n"
+        "and open **Network → Device Manager**.\n\n"
+        "Dependencies are resolved by the package manager. Standard OpenWrt\n"
+        "BusyBox supplies the required `ip` and `flock` applets. Custom firmware\n"
+        "that disables these applets must enable them or install `ip-tiny`\n"
+        "(or `ip-full`) and `flock` separately.\n\n"
+    ) + readme[end:]
     start = readme.index("## 构建和开发")
     end = readme.index("## 真实设备验收", start)
     readme = readme[:start] + (

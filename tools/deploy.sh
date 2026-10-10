@@ -138,7 +138,7 @@ for resource in model.js service.js preferences.js table.js device-dialog.js gro
     fi
 done
 
-if [[ ! -f "${PROJECT_ROOT}/root/usr/libexec/rpcd/luci.device-manager" || ! -f "${PROJECT_ROOT}/root/etc/uci-defaults/80_device_manager" ]]; then
+if [[ ! -f "${PROJECT_ROOT}/root/usr/libexec/rpcd/luci.device-manager" || ! -f "${PROJECT_ROOT}/tools/initialize-config.sh" ]]; then
     print_error "Missing rpcd helper or configuration initializer."
     exit 1
 fi
@@ -167,7 +167,7 @@ if ! ssh -p "${SSH_PORT}" "${SSH_COMMON_OPTS[@]}" -o BatchMode=no -o ControlPers
 fi
 
 if ! ssh "${SSH_OPTS[@]}" "${SSH_TARGET}" "command -v ip >/dev/null && command -v flock >/dev/null && test -r /usr/share/libubox/jshn.sh"; then
-    print_error "Router is missing ip, flock or jshn. Install ip-tiny, flock and jshn first."
+    print_error "Router is missing ip, flock or jshn. Standard OpenWrt BusyBox provides ip and flock; custom builds may need ip-tiny and flock. Install jshn if missing."
     exit 1
 fi
 
@@ -217,10 +217,10 @@ if [[ -f "${PROJECT_ROOT}/root/usr/libexec/rpcd/luci.device-manager" ]]; then
     ssh "${SSH_OPTS[@]}" "${SSH_TARGET}" "chmod +x /usr/libexec/rpcd/luci.device-manager"
 fi
 
-if [[ -f "${PROJECT_ROOT}/root/etc/uci-defaults/80_device_manager" ]]; then
-    print_info "Deploying uci-defaults initialization script..."
+if [[ -f "${PROJECT_ROOT}/tools/initialize-config.sh" ]]; then
+    print_info "Deploying development configuration initializer..."
     scp "${SCP_OPTS[@]}" \
-        "${PROJECT_ROOT}/root/etc/uci-defaults/80_device_manager" \
+        "${PROJECT_ROOT}/tools/initialize-config.sh" \
         "${SSH_TARGET}:/etc/uci-defaults/80_device_manager"
 fi
 

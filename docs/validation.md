@@ -1,6 +1,36 @@
 # Local upstream-readiness validation
 
-Validated on 2026-10-10. No router was modified, and no commit, push or PR was created.
+## PR review follow-up: 2026-10-11
+
+Addressed the dependency, license installation, redundant initializer and
+in-tree README comments on OpenWrt LuCI PR #9125.
+
+- Full Node regression suite: 100 passed, 0 failed, 0 skipped.
+- Python regression suite, including the exported installation instructions:
+  8 passed.
+- Official LuCI ESLint, native translation extraction, gettext, shell syntax
+  and whitespace checks passed.
+- Official OpenWrt BusyBox packages tested locally with the SDK musl loader:
+  SNAPSHOT 1.38.0-r3 and 24.10.4 1.36.1-r3. Both support
+  `ip -o -4 addr show dev lo`, `ip neigh show` and `flock -n 9`.
+  The actual RPC helper parsed IPv4 and IPv6 neighbor output from both binaries.
+- The 33 shell/Ping/scan regressions passed with each official BusyBox binary,
+  its flock applet and SDK-native jshn. Network probes, netifd and UCI inputs
+  were isolated fixtures; no router was modified.
+- Rebuilt the main and Chinese language APKs in the x86/64 SNAPSHOT SDK.
+  Main-package dependencies are libc, luci-base, rpcd-mod-iwinfo and jshn.
+  ip-tiny, ip-full and util-linux flock were disabled in the SDK configuration.
+  The extra license installation hook and packaged configuration initializer
+  were removed; MIT and Apache-2.0 declarations and source notices remain.
+
+Compatibility evidence and official binaries: /tmp/device-manager-review-compat/.
+SDK build log: /tmp/device-manager-review-sdk-build.log.
+Real-router acceptance and a stable-release SDK build remain unverified.
+
+## Initial validation: 2026-10-10
+
+The checks below describe the initial submission snapshot, before the PR review
+follow-up. No router was modified during that validation.
 
 ## Passed checks
 
